@@ -1,0 +1,56 @@
+import re
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
+from app.core.database import get_async_db
+from app.models.news import News
+from app.schemas.news import NewsResponse, NewsCreate
+
+router = APIRouter()
+
+def slugify(text: str) -> str:
+    # Basic slugification
+    text = text.lower()
+    text = re.sub(r'[^a-z0-9\s-]', '', text)
+    text = re.sub(r'[\s-]+', '-', text)
+    return text.strip('-')
+
+@router.get("/", response_model=List[NewsResponse])
+async def get_news(db: AsyncSession = Depends(get_async_db)):
+    result = await db.execute(
+        select(News).where(News.is_published == True).order_by(News.created_at.desc())
+    )
+    return result.scalars().all()
+
+@router.get("/{slug}", response_model=NewsResponse)
+async def get_news_detail(slug: str, db: AsyncSession = Depends(get_async_db)):
+    news = await db.scalar(select(News).where(News.slug == slug))
+    if not news:
+        raise HTTPException(status_code=404, detail="News article not found")
+    return news
+
+@router.post("/", response_model=NewsResponse)
+async def create_news_article(news_in: NewsCreate, db: AsyncSession = Depends(get_async_db)):
+    base_slug = slugify(news_in.title)
+    # Check for uniqueness
+    slug = base_slug
+    counter = 1
+    while await db.scalar(select(News).where(News.slug == slug)):
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+    db_news = News(
+        title=news_in.title,
+        slug=slug,
+        summary=news_in.summary,
+        content=news_in.content,
+        image_url=news_in.image_url,
+        source_url=news_in.source_url,
+        tags=news_in.tags,
+        is_published=news_in.is_published
+    )
+    db.add(db_news)
+    await db.commit()
+    await db.refresh(db_news)
+    return db_news
