@@ -104,6 +104,36 @@ ishlayotgan bo'lishi shart emas.
 
 ---
 
+## Baza migratsiyalari (Alembic)
+
+Sxema **ilova ishga tushganda avtomatik yangilanadi** — alohida buyruq kerak
+emas. Eski (Alembicdan oldingi) bazalar birinchi ishga tushishda boshlang'ich
+revizyada belgilanadi, ma'lumot yo'qolmaydi.
+
+Modelga o'zgartirish kiritganingizda migratsiya yozing:
+
+```bash
+cd backend
+.venv/Scripts/python -m alembic revision --autogenerate -m "matches jadvaliga stadion qo'shildi"
+```
+
+Yaratilgan faylni **albatta o'qib chiqing** — autogenerate hamma narsani
+to'g'ri aniqlamaydi (masalan ustun nomini o'zgartirishni "eskisini o'chir,
+yangisini qo'sh" deb tushunadi, bu esa ma'lumotni yo'q qiladi).
+
+Foydali buyruqlar:
+
+```bash
+.venv/Scripts/python -m alembic current              # hozirgi revizya
+.venv/Scripts/python -m alembic history              # tarix
+.venv/Scripts/python -m alembic upgrade head         # qo'lda yangilash
+.venv/Scripts/python -m alembic downgrade -1         # bir qadam orqaga
+.venv/Scripts/python -m alembic upgrade head --sql   # SQL ni ko'rish (bajarmasdan)
+```
+
+`tests/test_migrations.py` modellar va migratsiyalar mos kelishini tekshiradi —
+migratsiya yozishni unutsangiz test yiqiladi.
+
 ## Testlar
 
 ```bash
@@ -158,3 +188,7 @@ yangilanishlarni ustiga qo'yadi.
 **Ehtimollar.** Bitta formula ikki joyda takrorlangan:
 `app/services/probability.py` va `lib/probability.ts`. Ularni o'zgartirsangiz
 ikkalasini birga o'zgartiring.
+
+**Sxema.** `Base.metadata.create_all` ishlatilmaydi — sxemani faqat Alembic
+boshqaradi (`app/core/migrations.py`). `create_all` mavjud jadvalga ustun
+qo'shilganini sezmasdi va xato jimgina yashirin qolardi.

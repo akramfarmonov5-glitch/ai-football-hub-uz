@@ -8,7 +8,8 @@ from sqlalchemy import text
 
 from app.api.router import api_router
 from app.core.config import settings
-from app.core.database import Base, async_engine, AsyncSessionLocal
+from app.core.database import AsyncSessionLocal
+from app.core.migrations import run_migrations
 from app.services.football_api import FootballAPIService
 from app.services.simulator import run_simulation_loop
 from app.services.websocket import manager
@@ -23,8 +24,9 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- Startup ---
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # Sxemani Alembic boshqaradi. `to_thread` — migratsiyalar sinxron
+    # drayverda ishlaydi va event loop'ni bloklamasligi kerak.
+    await asyncio.to_thread(run_migrations)
 
     async with AsyncSessionLocal() as db:
         await FootballAPIService(db).seed_mock_matches_if_empty()
