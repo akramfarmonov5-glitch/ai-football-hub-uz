@@ -1,31 +1,32 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  getLocalMatches,
-  getLocalNews,
-  simulateLocalTick,
-  Match,
-  NewsItem,
-} from "./mockStore";
+import { getLocalMatches, getLocalNews, simulateLocalTick } from "./mockStore";
+import type { Match, NewsItem } from "./types";
 import { apiUrl, WS_URL } from "./api";
 
 /** Qayta ulanish oralig'i: 1s, 2s, 4s ... maksimum 30s */
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30000;
 
+interface Options {
+  /** Serverda yuklangan boshlang'ich ma'lumot (SSR) */
+  initialMatches?: Match[];
+  initialNews?: NewsItem[];
+}
+
 /**
- * O'yinlar va yangiliklarni yuklaydi, WebSocket orqali jonli yangilanishlarga
- * obuna bo'ladi, backend ishlamasa lokal demo ma'lumotlarga o'tadi.
+ * Jonli yangilanishlarni boshqaradi.
  *
- * Ilgari WebSocket uzilib qolsa hech narsa qilinmasdi: sayt jimgina eskirgan
- * hisobni ko'rsatib turaverardi va "offline" belgisi ham chiqmasdi. Endi
- * ulanish avtomatik tiklanadi va holat foydalanuvchiga to'g'ri ko'rsatiladi.
+ * Boshlang'ich ma'lumot serverdan props orqali keladi, shuning uchun sahifa
+ * darhol to'liq ko'rinadi. Keyin WebSocket orqali hisoblar yangilanib turadi.
+ * Ulanish uzilsa avtomatik tiklanadi; backend umuman yo'q bo'lsa brauzerdagi
+ * demo ma'lumotlarga o'tiladi.
  */
-export function useMatches() {
-  const [matches, setMatches] = useState<Match[]>([]);
-  const [news, setNews] = useState<NewsItem[]>([]);
-  const [loading, setLoading] = useState(true);
+export function useMatches({ initialMatches = [], initialNews = [] }: Options = {}) {
+  const [matches, setMatches] = useState<Match[]>(initialMatches);
+  const [news, setNews] = useState<NewsItem[]>(initialNews);
+  const [loading, setLoading] = useState(initialMatches.length === 0);
   const [isOffline, setIsOffline] = useState(false);
 
   const socketRef = useRef<WebSocket | null>(null);
@@ -60,7 +61,10 @@ export function useMatches() {
         setLoading(false);
       }
     }
-    fetchData();
+
+    // Server allaqachon ma'lumot bergan bo'lsa, darhol qayta so'ramaymiz —
+    // WebSocket yangilanishlarni o'zi olib keladi.
+    if (initialMatches.length === 0) fetchData();
 
     function connect() {
       if (closedByUsRef.current) return;
@@ -120,7 +124,59 @@ export function useMatches() {
       socketRef.current?.close();
       clearInterval(localTicker);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { matches, news, loading, isOffline };
+}
+
+/**
+ * Bitta o'yinni jonli kuzatadi (o'yin sahifasi uchun).
+ * Boshlang'ich qiymat serverdan keladi.
+ */
+export function useLiveMatch(initialMatch: Match) {
+  const [match, setMatch] = useState<Match>(initialMatch);
+
+  useEffect(() => {
+    let closedByUs = false;
+    let attempts = 0;
+    let socket: WebSocket | null = null;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    function connect() {
+      if (closedByUs) return;
+      socket = new WebSocket(WS_URL);
+
+      socket.onopen = () => {
+        attempts = 0;
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.event === "match_update" && data.match.id === initialMatch.id) {
+            setMatch((prev) => ({ ...prev, ...data.match }));
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+
+      socket.onclose = () => {
+        if (closedByUs) return;
+        const delay = Math.min(RECONNECT_BASE_MS * 2 ** attempts, RECONNECT_MAX_MS);
+        attempts += 1;
+        timer = setTimeout(connect, delay);
+      };
+    }
+    connect();
+
+    return () => {
+      closedByUs = true;
+      if (timer) clearTimeout(timer);
+      socket?.close();
+    };
+  }, [initialMatch.id]);
+
+  return match;
 }

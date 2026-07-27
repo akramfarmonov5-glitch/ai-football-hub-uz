@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Newspaper, ChevronRight } from "lucide-react";
-import { NewsItem } from "../lib/mockStore";
+import type { NewsItem } from "../lib/types";
 import { formatDate } from "../lib/time";
 
 export function NewsList({ news }: { news: NewsItem[] }) {

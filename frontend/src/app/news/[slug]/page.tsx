@@ -1,101 +1,105 @@
-"use client";
-
-import { useEffect, useState, use } from "react";
+import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Tag, Share2, Globe } from "lucide-react";
-import { getLocalNews, NewsItem } from "../../../lib/mockStore";
-import { apiUrl } from "../../../lib/api";
+import Image from "next/image";
+import { notFound } from "next/navigation";
+import { cache } from "react";
+import { ArrowLeft, Calendar, Tag, Globe } from "lucide-react";
+
+import { getNewsArticle } from "../../../lib/server-api";
 import { formatDateTime } from "../../../lib/time";
+import { ShareButton } from "../../../components/ShareButton";
 
-export default function NewsDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  const resolvedParams = use(params);
-  const slug = resolvedParams.slug;
-  const [news, setNews] = useState<NewsItem | null>(null);
-  const [loading, setLoading] = useState(true);
+type Props = { params: Promise<{ slug: string }> };
 
-  useEffect(() => {
-    async function fetchNews() {
-      try {
-        const res = await fetch(apiUrl(`/news/${slug}`));
-        if (res.ok) {
-          setNews(await res.json());
-        } else {
-          throw new Error("News detail API error");
-        }
-      } catch (err) {
-        console.warn("Backend offline, loading news from local mock store.");
-        const newsList = getLocalNews();
-        const found = newsList.find(n => n.slug === slug);
-        if (found) setNews(found);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchNews();
-  }, [slug]);
+const loadArticle = cache(getNewsArticle);
 
-  if (loading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-        <div className="w-8 h-8 border-4 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-400 font-medium">Yangilik yuklanmoqda...</p>
-      </div>
-    );
-  }
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const news = await loadArticle(slug);
 
   if (!news) {
-    return (
-      <div className="text-center py-12">
-        <h2 className="text-xl font-bold">Maqola topilmadi</h2>
-        <Link href="/" className="text-cyan-400 inline-flex items-center mt-4">
-          <ArrowLeft className="w-4 h-4 mr-2" /> Match markaziga qaytish
-        </Link>
-      </div>
-    );
+    return { title: "Maqola topilmadi" };
   }
+
+  const description =
+    news.summary?.slice(0, 160) ||
+    news.content.replace(/[*#]/g, "").slice(0, 160);
+
+  return {
+    title: news.title,
+    description,
+    keywords: news.tags,
+    openGraph: {
+      title: news.title,
+      description,
+      type: "article",
+      publishedTime: news.created_at,
+      tags: news.tags,
+      url: `/news/${news.slug}`,
+      images: news.image_url ? [{ url: news.image_url }] : undefined,
+    },
+    twitter: {
+      card: news.image_url ? "summary_large_image" : "summary",
+      title: news.title,
+      description,
+    },
+    alternates: { canonical: `/news/${news.slug}` },
+  };
+}
+
+export default async function NewsDetailPage({ params }: Props) {
+  const { slug } = await params;
+  const news = await loadArticle(slug);
+
+  if (!news) notFound();
 
   return (
     <article className="max-w-3xl mx-auto space-y-8">
-      <Link href="/" className="inline-flex items-center text-slate-400 hover:text-cyan-400 text-sm transition-colors">
+      <Link
+        href="/"
+        className="inline-flex items-center text-slate-400 hover:text-cyan-400 text-sm transition-colors"
+      >
         <ArrowLeft className="w-4 h-4 mr-2" /> Orqaga qaytish
       </Link>
 
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
           {news.tags?.map((t) => (
-            <span key={t} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/25">
+            <span
+              key={t}
+              className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/25"
+            >
               <Tag className="w-3 h-3 mr-1" />
               {t}
             </span>
           ))}
         </div>
+
         <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-100 leading-tight">
           {news.title}
         </h1>
-        
+
         <div className="flex items-center justify-between text-xs text-slate-500 border-y border-white/5 py-3">
-          <span className="flex items-center">
+          <time dateTime={news.created_at} className="flex items-center">
             <Calendar className="w-3.5 h-3.5 mr-1" />
             {formatDateTime(news.created_at)}
-          </span>
+          </time>
           <div className="flex space-x-4">
-            <button 
-              onClick={() => {
-                navigator.clipboard.writeText(window.location.href);
-                alert("Havola nusxalandi!");
-              }}
-              className="hover:text-cyan-400 flex items-center transition-colors cursor-pointer"
-            >
-              <Share2 className="w-3.5 h-3.5 mr-1" />
-              Ulashish
-            </button>
+            <ShareButton />
           </div>
         </div>
       </div>
 
       {news.image_url && (
         <div className="relative aspect-video rounded-3xl overflow-hidden border border-white/5">
-          <img src={news.image_url} alt={news.title} className="object-cover w-full h-full" />
+          <Image
+            src={news.image_url}
+            alt={news.title}
+            fill
+            sizes="(max-width: 768px) 100vw, 768px"
+            className="object-cover"
+            unoptimized
+          />
         </div>
       )}
 
@@ -113,7 +117,12 @@ export default function NewsDetailPage({ params }: { params: Promise<{ slug: str
         <div className="pt-6 border-t border-white/5 flex items-center">
           <Globe className="w-4 h-4 text-slate-500 mr-2" />
           <span className="text-xs text-slate-500">Asl manba: </span>
-          <a href={news.source_url} target="_blank" rel="noreferrer" className="text-xs text-cyan-400 ml-1.5 hover:underline font-medium">
+          <a
+            href={news.source_url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-cyan-400 ml-1.5 hover:underline font-medium"
+          >
             {news.source_url}
           </a>
         </div>

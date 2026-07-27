@@ -2,9 +2,41 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Link from "next/link";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+const TELEGRAM_BOT_URL =
+  process.env.NEXT_PUBLIC_TELEGRAM_BOT_URL ?? "https://t.me/";
+
+const SITE_NAME = "AI Football Hub Uzbekistan";
+const SITE_DESCRIPTION =
+  "O'zbekistondagi birinchi to'liq sun'iy intellekt orqali ishlovchi futbol platformasi. Jonli hisoblar, o'yinoldi va o'yindan keyingi tahlillar.";
+
 export const metadata: Metadata = {
-  title: "AI Football Hub Uzbekistan - Live Natijalar va AI Tahlil",
-  description: "O'zbekistondagi birinchi to'liq sun'iy intellekt orqali ishlovchi futbol platformasi. Jonli hisoblar, o'yinoldi va o'yindan keyingi tahlillar.",
+  // Nisbiy URL'lar (og:url, canonical) shu manzilga nisbatan to'ldiriladi
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${SITE_NAME} - Live Natijalar va AI Tahlil`,
+    // Ichki sahifalar o'z sarlavhasini beradi, oxiriga sayt nomi qo'shiladi
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "uz_UZ",
+    title: `${SITE_NAME} - Live Natijalar va AI Tahlil`,
+    description: SITE_DESCRIPTION,
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} - Live Natijalar va AI Tahlil`,
+    description: SITE_DESCRIPTION,
+  },
+  // `robots` ataylab belgilanmagan: teg bo'lmasa indeksatsiya baribir ruxsat
+  // etilgan. Aksincha, uni yozib qo'ysak, Next.js topilmagan sahifalarga
+  // avtomatik qo'yadigan `noindex` bilan qarama-qarshi teg paydo bo'lardi.
+  alternates: { canonical: "/" },
 };
 
 export default function RootLayout({
@@ -17,10 +49,12 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
       </head>
       <body className="min-h-full flex flex-col bg-[#060913] text-slate-100 font-sans selection:bg-cyan-500 selection:text-black">
-        {/* Navigation Header */}
         <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#060913]/80 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div className="flex items-center space-x-8">
@@ -41,12 +75,12 @@ export default function RootLayout({
                 </Link>
               </nav>
             </div>
-            
+
             <div className="flex items-center space-x-4">
-              <a 
-                href="https://t.me/your_bot_username" 
-                target="_blank" 
-                rel="noreferrer" 
+              <a
+                href={TELEGRAM_BOT_URL}
+                target="_blank"
+                rel="noreferrer"
                 className="bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold px-4 py-2 rounded-full transition-colors shadow-lg shadow-sky-500/10"
               >
                 Telegram Bot 🤖
@@ -61,8 +95,11 @@ export default function RootLayout({
 
         <footer className="border-t border-white/5 py-8 mt-12 bg-[#04060d]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500">
-            <p>© {new Date().getFullYear()} AI Football Hub Uzbekistan. Barcha huquqlar himoyalangan.</p>
-            <p className="mt-2 text-slate-600">Loyiha test rejimida ishlamoqda. AI tahlillari sun'iy intellekt tomonidan generatsiya qilinadi.</p>
+            <p>© {new Date().getFullYear()} {SITE_NAME}. Barcha huquqlar himoyalangan.</p>
+            <p className="mt-2 text-slate-600">
+              Loyiha test rejimida ishlamoqda. AI tahlillari sun'iy intellekt tomonidan
+              generatsiya qilinadi.
+            </p>
           </div>
         </footer>
       </body>

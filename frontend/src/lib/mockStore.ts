@@ -1,37 +1,8 @@
 import { estimateWinProbability } from "./probability";
+import type { Match, NewsItem } from "./types";
 
-export interface Match {
-  id: number;
-  league_id: number;
-  league_name: string;
-  home_team_name: string;
-  away_team_name: string;
-  home_team_logo: string;
-  away_team_logo: string;
-  status: string;
-  score_home: number;
-  score_away: number;
-  match_time: string;
-  minute: number;
-  lineups?: { home: string[]; away: string[] };
-  timeline?: { time: number; type: string; detail: string; team: string }[];
-  stats?: { possession: { home: number; away: number }; shots: { home: number; away: number }; xG: { home: number; away: number } };
-  ai_preview?: string;
-  ai_analysis?: string;
-  win_probability?: { home: number; draw: number; away: number };
-}
-
-export interface NewsItem {
-  id: number;
-  title: string;
-  slug: string;
-  summary: string;
-  content: string;
-  image_url?: string;
-  source_url?: string;
-  created_at: string;
-  tags: string[];
-}
+// Turlar lib/types.ts da — eski importlar buzilmasligi uchun qayta eksport
+export type { Match, NewsItem } from "./types";
 
 const DEFAULT_NEWS: NewsItem[] = [
   {

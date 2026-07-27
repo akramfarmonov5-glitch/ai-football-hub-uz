@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Sparkles, ChevronRight } from "lucide-react";
-import { Match } from "../lib/mockStore";
+import type { Match } from "../lib/types";
 
 export function SpotlightCard({ match }: { match: Match }) {
   return (
@@ -35,7 +36,14 @@ export function SpotlightCard({ match }: { match: Match }) {
         <div className="flex flex-col items-center space-y-4">
           <div className="w-18 h-18 md:w-24 md:h-24 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-center p-3 hover:scale-105 transition-transform">
             {match.home_team_logo ? (
-              <img src={match.home_team_logo} alt={match.home_team_name} className="w-full h-full object-contain" />
+              <Image
+                src={match.home_team_logo}
+                alt={match.home_team_name}
+                width={72}
+                height={72}
+                className="w-full h-full object-contain"
+                unoptimized
+              />
             ) : (
               <span className="text-3xl font-black text-emerald-400">{match.home_team_name.substring(0, 2).toUpperCase()}</span>
             )}
@@ -63,7 +71,14 @@ export function SpotlightCard({ match }: { match: Match }) {
         <div className="flex flex-col items-center space-y-4">
           <div className="w-18 h-18 md:w-24 md:h-24 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-center p-3 hover:scale-105 transition-transform">
             {match.away_team_logo ? (
-              <img src={match.away_team_logo} alt={match.away_team_name} className="w-full h-full object-contain" />
+              <Image
+                src={match.away_team_logo}
+                alt={match.away_team_name}
+                width={72}
+                height={72}
+                className="w-full h-full object-contain"
+                unoptimized
+              />
             ) : (
               <span className="text-3xl font-black text-cyan-400">{match.away_team_name.substring(0, 2).toUpperCase()}</span>
             )}

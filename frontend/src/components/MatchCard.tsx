@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Sparkles } from "lucide-react";
-import { Match } from "../lib/mockStore";
+import type { Match } from "../lib/types";
 import { formatTime } from "../lib/time";
 
 export function MatchCard({ match, live = false, finished = false }: { match: Match; live?: boolean; finished?: boolean }) {
@@ -43,7 +44,14 @@ export function MatchCard({ match, live = false, finished = false }: { match: Ma
         <div className="flex flex-col items-center space-y-2 flex-1">
           <div className="w-12 h-12 bg-white/5 border border-white/5 rounded-xl flex items-center justify-center p-2">
             {match.home_team_logo ? (
-              <img src={match.home_team_logo} alt={match.home_team_name} className="w-full h-full object-contain" />
+              <Image
+                src={match.home_team_logo}
+                alt={match.home_team_name}
+                width={32}
+                height={32}
+                className="w-full h-full object-contain"
+                unoptimized
+              />
             ) : (
               <span className="text-base font-black text-emerald-400">{match.home_team_name.substring(0, 2).toUpperCase()}</span>
             )}
@@ -66,7 +74,14 @@ export function MatchCard({ match, live = false, finished = false }: { match: Ma
         <div className="flex flex-col items-center space-y-2 flex-1">
           <div className="w-12 h-12 bg-white/5 border border-white/5 rounded-xl flex items-center justify-center p-2">
             {match.away_team_logo ? (
-              <img src={match.away_team_logo} alt={match.away_team_name} className="w-full h-full object-contain" />
+              <Image
+                src={match.away_team_logo}
+                alt={match.away_team_name}
+                width={32}
+                height={32}
+                className="w-full h-full object-contain"
+                unoptimized
+              />
             ) : (
               <span className="text-base font-black text-cyan-400">{match.away_team_name.substring(0, 2).toUpperCase()}</span>
             )}
