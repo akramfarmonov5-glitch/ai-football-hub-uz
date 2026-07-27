@@ -42,7 +42,8 @@ export function useMatches({ initialMatches = [], initialNews = [] }: Options = 
     async function fetchData() {
       try {
         const [matchesRes, newsRes] = await Promise.all([
-          fetch(apiUrl("/matches/")),
+          // Serverdagi getMatches bilan bir xil oyna (lib/server-api.ts)
+          fetch(apiUrl("/matches/?days=2&limit=100")),
           fetch(apiUrl("/news/")),
         ]);
         if (!matchesRes.ok) throw new Error("API error");

@@ -38,8 +38,15 @@ async function getJson<T>(path: string, fallback: T): Promise<T> {
   }
 }
 
+/**
+ * "O'yin Markazi" uchun o'yinlar.
+ *
+ * `days=2` — kecha, bugun va ertaga. Busiz sahifada haftalar oldingi tugagan
+ * o'yinlar ham turaverardi va sayt eskirgandek ko'rinardi. Eski o'yinlar
+ * bazada qoladi va turnir jadvalida hisobga olinadi.
+ */
 export async function getMatches(): Promise<Match[]> {
-  return getJson<Match[]>("/matches/?limit=100", []);
+  return getJson<Match[]>("/matches/?days=2&limit=100", []);
 }
 
 export async function getMatch(id: string): Promise<Match | null> {

@@ -20,6 +20,11 @@ os.environ["API_FOOTBALL_KEY"] = ""
 os.environ["GEMINI_API_KEY"] = ""
 os.environ["TELEGRAM_BOT_TOKEN"] = ""
 os.environ["ADMIN_TOKEN"] = "test-admin-token"
+# AI zaxira yo'li ham o'chiriladi — busiz testlar haqiqiy Vertex AI ga
+# so'rov yuborishi mumkin edi (.env dagi loyiha ID va service account bilan).
+os.environ["GCP_PROJECT_ID"] = ""
+os.environ["VERTEX_PROJECT"] = ""
+os.environ["VERTEX_CREDENTIALS_FILE"] = ""
 
 import pytest  # noqa: E402
 import pytest_asyncio  # noqa: E402

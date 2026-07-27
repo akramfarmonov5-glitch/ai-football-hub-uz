@@ -1,14 +1,17 @@
 import asyncio
 import logging
 import time
+from datetime import timedelta
 from typing import Optional
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.clock import utcnow
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models.match import Match
+from app.models.news import News
 from app.services.ai_engine import get_ai_engine
 from app.services.football_api import FootballAPIService
 from app.services.notifier import notify_goals
@@ -17,6 +20,9 @@ from app.services.websocket import manager
 # Har bir qadamda nechta o'yinga AI tahlili tayyorlanadi. Cheklov ataylab:
 # aks holda bir vaqtda o'nlab AI so'rovi ketib, hisobni bo'shatib qo'yardi.
 AI_PREVIEWS_PER_TICK = 2
+
+# Yangiliklar bundan tez-tez yozilmaydi (AI so'rovlarini cheklash uchun)
+NEWS_MIN_INTERVAL_HOURS = 3
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +90,62 @@ async def generate_missing_previews(db: AsyncSession) -> None:
     logger.info("%d ta o'yinga AI tahlili tayyorlandi", len(pending))
 
 
+async def generate_match_report(db: AsyncSession) -> Optional[News]:
+    """Yakunlangan o'yin haqida yangilik yozadi.
+
+    Busiz "Qaynoq Xabarlar" bo'limi bir marta yozilgan maqola bilan qotib
+    qolardi — sayt haftalar o'tib ham eski yangilikni ko'rsatib turardi.
+
+    Takrorlanishning oldi shunday olinadi: faqat oxirgi yangilikdan **keyin**
+    tugagan o'yin haqida yoziladi. Ya'ni bir o'yin haqida ikki marta maqola
+    chiqmaydi va yangi o'yin bo'lmasa yangi maqola ham yozilmaydi.
+    """
+    latest_news_at = await db.scalar(select(func.max(News.created_at)))
+
+    if latest_news_at and utcnow() - latest_news_at < timedelta(hours=NEWS_MIN_INTERVAL_HOURS):
+        return None
+
+    query = select(Match).where(Match.status == "FT")
+    if latest_news_at:
+        query = query.where(Match.match_time > latest_news_at)
+
+    match = await db.scalar(query.order_by(Match.match_time.desc()).limit(1))
+    if not match:
+        return None
+
+    topic = (
+        f"{match.league_name}: {match.home_team_name} {match.score_home}-"
+        f"{match.score_away} {match.away_team_name} o'yini yakunlandi"
+    )
+    article = await get_ai_engine().generate_news_article(topic)
+
+    # Slug generatsiyasi va unikalligi news endpointidagi bilan bir xil bo'lsin
+    from app.api.endpoints.news import slugify
+
+    base_slug = slugify(article["title"])
+    slug = base_slug
+    counter = 1
+    while await db.scalar(select(News.id).where(News.slug == slug)):
+        slug = f"{base_slug}-{counter}"
+        counter += 1
+
+    tags = list(article.get("tags") or [])
+    tags.append(f"match-{match.id}")
+
+    news = News(
+        title=article["title"],
+        slug=slug,
+        summary=article.get("summary"),
+        content=article["content"],
+        tags=tags,
+        is_published=True,
+    )
+    db.add(news)
+    await db.commit()
+    logger.info("Yangi maqola yozildi: %s", news.title)
+    return news
+
+
 async def run_simulation_loop(interval_seconds: Optional[int] = None) -> None:
     """Fon vazifasi: jadvalni tirik holatda ushlab turadi.
 
@@ -126,6 +188,7 @@ async def run_simulation_loop(interval_seconds: Optional[int] = None) -> None:
                     await notify_goals(db, service.new_goals)
 
                 await generate_missing_previews(db)
+                await generate_match_report(db)
             except asyncio.CancelledError:
                 raise
             except Exception:

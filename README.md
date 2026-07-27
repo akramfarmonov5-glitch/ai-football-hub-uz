@@ -97,6 +97,21 @@ VERTEX_MODEL=""                                   # bo'sh = GEMINI_MODEL bilan b
 
 ---
 
+## Sayt nega "bugungi" ko'rinishda qoladi
+
+Ikki mexanizm buni ta'minlaydi:
+
+**O'yin markazi — vaqt oynasi.** Bosh sahifa `/matches/?days=2` ni so'raydi,
+ya'ni kecha, bugun va ertangi bahslar. Busiz haftalar oldingi tugagan o'yinlar
+ham ro'yxatda turaverardi. Eski o'yinlar bazadan o'chirilmaydi — ular turnir
+jadvalida hisobga olinaveradi, shunchaki bosh sahifada ko'rinmaydi.
+
+**Yangiliklar — avtomatik yoziladi.** Simulyator yakunlangan o'yin haqida AI
+maqolasi tayyorlaydi (`generate_match_report`). Busiz "Qaynoq Xabarlar" bir
+marta yozilgan maqola bilan qotib qolardi. Takrorlanmasligi uchun faqat
+oxirgi maqoladan **keyin** tugagan o'yin haqida yoziladi, va maqolalar
+`NEWS_MIN_INTERVAL_HOURS` (3 soat) dan tez-tez chiqmaydi.
+
 ## Turnir jadvali
 
 `/standings` sahifasi va `GET /api/v1/standings/` endpointi.

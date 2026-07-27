@@ -2,6 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Literal, Optional
+from datetime import timedelta
+
+from app.core.clock import utcnow
 from app.core.database import get_async_db
 from app.core.security import verify_admin
 from app.models.match import Match
@@ -15,18 +18,34 @@ async def get_matches(
     db: AsyncSession = Depends(get_async_db),
     status: Optional[Literal["NS", "LIVE", "FT"]] = None,
     league_id: Optional[int] = None,
+    days: Optional[int] = Query(
+        default=None,
+        ge=1,
+        le=365,
+        description="Faqat shu kun oralig'idagi o'yinlar (hozirdan oldin va keyin)",
+    ),
     limit: int = Query(default=100, ge=1, le=200),
     offset: int = Query(default=0, ge=0),
 ):
     """O'yinlar ro'yxati.
 
     Limit majburiy: busiz baza o'sgan sari javob ham cheksiz o'sib borardi.
+
+    `days` — vaqt oynasi. Bosh sahifa uni beradi, shunda "O'yin Markazi"da
+    faqat dolzarb bahslar chiqadi; eski o'yinlar bazada qoladi va turnir
+    jadvalida hisobga olinaveradi.
     """
     query = select(Match)
     if status:
         query = query.where(Match.status == status)
     if league_id is not None:
         query = query.where(Match.league_id == league_id)
+    if days is not None:
+        window = timedelta(days=days)
+        now = utcnow()
+        query = query.where(
+            Match.match_time >= now - window, Match.match_time <= now + window
+        )
 
     query = query.order_by(Match.match_time.desc()).limit(limit).offset(offset)
     result = await db.execute(query)
