@@ -1,6 +1,6 @@
 import { unstable_rethrow } from "next/navigation";
 
-import type { LeagueStandings, Match, NewsItem } from "./types";
+import type { LeagueStandings, Match, NewsItem, SiteMeta } from "./types";
 
 /**
  * Server komponentlar uchun ma'lumot olish.
@@ -63,4 +63,16 @@ export async function getNewsArticle(slug: string): Promise<NewsItem | null> {
 
 export async function getStandings(): Promise<LeagueStandings[]> {
   return getJson<LeagueStandings[]>("/standings/", []);
+}
+
+/**
+ * Ma'lumot manbai. Backend javob bermasa ham simulyatsiya deb hisoblaymiz —
+ * ogohlantirishni yashirgandan ko'ra ortiqcha ko'rsatgan xavfsizroq.
+ */
+export async function getMeta(): Promise<SiteMeta> {
+  return getJson<SiteMeta>("/meta/", {
+    data_source: "simulation",
+    is_simulated: true,
+    ai_enabled: false,
+  });
 }

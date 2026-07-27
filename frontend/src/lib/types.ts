@@ -35,6 +35,13 @@ export interface Match {
   win_probability?: { home: number; draw: number; away: number };
 }
 
+export interface SiteMeta {
+  data_source: "api-football" | "simulation";
+  /** Rost bo'lsa — o'yinlar va natijalar to'qib chiqarilgan, haqiqiy emas */
+  is_simulated: boolean;
+  ai_enabled: boolean;
+}
+
 export type FormResult = "W" | "D" | "L";
 
 export interface TeamStanding {

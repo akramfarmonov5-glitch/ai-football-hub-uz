@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+import { SimulationNotice } from "../components/SimulationNotice";
 
 /**
  * Shrift build paytida yuklab olinadi va o'z domenimizdan beriladi.
@@ -62,6 +63,9 @@ export default function RootLayout({
   return (
     <html lang="uz" className={`${outfit.variable} h-full dark`}>
       <body className="min-h-full flex flex-col bg-[#060913] text-slate-100 font-sans selection:bg-cyan-500 selection:text-black">
+        {/* Ma'lumot manbai haqiqiy bo'lmasa — har bir sahifada ogohlantiramiz */}
+        <SimulationNotice />
+
         <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#060913]/80 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div className="flex items-center space-x-8">
@@ -107,8 +111,9 @@ export default function RootLayout({
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500">
             <p>© {new Date().getFullYear()} {SITE_NAME}. Barcha huquqlar himoyalangan.</p>
             <p className="mt-2 text-slate-600">
-              Loyiha test rejimida ishlamoqda. AI tahlillari sun'iy intellekt tomonidan
-              generatsiya qilinadi.
+              Demo rejimida o'yinlar, hisoblar va turnir jadvali namoyish uchun
+              avtomatik yaratiladi — ular haqiqiy uchrashuvlarni aks ettirmaydi.
+              AI tahlillari sun'iy intellekt tomonidan generatsiya qilinadi.
             </p>
           </div>
         </footer>

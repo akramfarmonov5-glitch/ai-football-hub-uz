@@ -97,6 +97,29 @@ VERTEX_MODEL=""                                   # bo'sh = GEMINI_MODEL bilan b
 
 ---
 
+## Ma'lumot manbai: demo yoki haqiqiy
+
+Loyiha ikki rejimda ishlaydi va buni **yashirmaydi**.
+
+**Demo (standart).** `API_FOOTBALL_KEY` bo'sh bo'lsa simulyator o'yinlarni
+o'zi to'qib chiqaradi — haqiqiy jamoa nomlari bilan, lekin natijalar
+o'ylab topilgan. Bunday holatda saytning har bir sahifasi tepasida sariq
+ogohlantirish chiqadi (`components/SimulationNotice.tsx`). Busiz tashrif
+buyuruvchi "Liverpool 1-0 Arsenal" ni bugungi haqiqiy natija deb qabul
+qilardi.
+
+**Haqiqiy.** `.env` da `API_FOOTBALL_KEY` to'ldirilsa — simulyatsiya
+butunlay o'chadi, faqat API-Football ma'lumotlari ishlatiladi va
+ogohlantirish yo'qoladi:
+
+```bash
+API_FOOTBALL_KEY="kalitingiz"        # https://www.api-football.com/ (bepul: 100 so'rov/kun)
+API_FOOTBALL_LEAGUES="39,140"        # kuzatiladigan ligalar
+API_FOOTBALL_POLL_SECONDS=900        # 15 daqiqa = ~96 so'rov/kun
+```
+
+Joriy rejimni bilish: `GET /api/v1/meta/` -> `{"data_source": "...", "is_simulated": ...}`
+
 ## Sayt nega "bugungi" ko'rinishda qoladi
 
 Ikki mexanizm buni ta'minlaydi:

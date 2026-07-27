@@ -41,11 +41,13 @@ export function HomeClient({
 
   return (
     <div className="space-y-12">
+      {/* Serverga ulanib bo'lmaganda. Simulyatsiya haqidagi ogohlantirish
+          alohida — u layoutda, har bir sahifada turadi. */}
       {isOffline && (
         <div className="flex items-center justify-between px-6 py-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/25 text-cyan-400 text-xs font-semibold shadow-lg">
           <span className="flex items-center">
             <Sparkles className="w-4 h-4 mr-2 text-cyan-300 animate-pulse" />
-            Interaktiv Demo Rejimi Faol: Haqiqiy o'yinlar simulyatsiya qilinmoqda.
+            Serverga ulanib bo'lmadi — brauzerdagi zaxira ma'lumotlar ko'rsatilmoqda.
           </span>
           <Link href="/admin" className="underline hover:text-cyan-300 flex items-center">
             Simulyatorga o'tish <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
