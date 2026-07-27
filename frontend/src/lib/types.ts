@@ -35,6 +35,30 @@ export interface Match {
   win_probability?: { home: number; draw: number; away: number };
 }
 
+export type FormResult = "W" | "D" | "L";
+
+export interface TeamStanding {
+  position: number;
+  team: string;
+  logo: string | null;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goals_for: number;
+  goals_against: number;
+  goal_difference: number;
+  points: number;
+  /** Oxirgi 5 o'yin, eng yangisi oxirida */
+  form: FormResult[];
+}
+
+export interface LeagueStandings {
+  league_id: number;
+  league_name: string;
+  table: TeamStanding[];
+}
+
 export interface NewsItem {
   id: number;
   title: string;

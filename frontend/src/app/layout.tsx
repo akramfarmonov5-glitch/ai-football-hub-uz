@@ -77,6 +77,9 @@ export default function RootLayout({
                 <Link href="/#match-center" className="hover:text-emerald-400 transition-colors">
                   Match Markazi
                 </Link>
+                <Link href="/standings" className="hover:text-emerald-400 transition-colors">
+                  Turnir jadvali
+                </Link>
                 <Link href="/#news-section" className="hover:text-emerald-400 transition-colors">
                   Yangiliklar
                 </Link>

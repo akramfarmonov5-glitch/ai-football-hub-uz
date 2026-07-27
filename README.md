@@ -97,6 +97,19 @@ VERTEX_MODEL=""                                   # bo'sh = GEMINI_MODEL bilan b
 
 ---
 
+## Turnir jadvali
+
+`/standings` sahifasi va `GET /api/v1/standings/` endpointi.
+
+Jadval **alohida saqlanmaydi** — har safar tugagan o'yinlardan qayta
+hisoblanadi (`app/services/standings.py`). Shu sababli u hech qachon o'yin
+natijalari bilan nomuvofiq bo'lib qolmaydi: admin hisobni tuzatsa yoki
+o'yin qayta o'ynalsa, jadval o'zi yangilanadi.
+
+Qoida: g'alaba — 3 ochko, durang — 1. Ochkolar teng bo'lganda gollar farqi,
+keyin urilgan gollar, oxirida alifbo tartibi (natija barqaror bo'lishi uchun).
+"Forma" ustuni oxirgi 5 o'yin natijasini ko'rsatadi.
+
 ## Xavfsizlik
 
 - Barcha **yozish** endpointlari `X-Admin-Token` sarlavhasini talab qiladi:

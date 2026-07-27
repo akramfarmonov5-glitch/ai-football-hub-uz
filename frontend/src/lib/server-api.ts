@@ -1,6 +1,6 @@
 import { unstable_rethrow } from "next/navigation";
 
-import type { Match, NewsItem } from "./types";
+import type { LeagueStandings, Match, NewsItem } from "./types";
 
 /**
  * Server komponentlar uchun ma'lumot olish.
@@ -52,4 +52,8 @@ export async function getNews(): Promise<NewsItem[]> {
 
 export async function getNewsArticle(slug: string): Promise<NewsItem | null> {
   return getJson<NewsItem | null>(`/news/${encodeURIComponent(slug)}`, null);
+}
+
+export async function getStandings(): Promise<LeagueStandings[]> {
+  return getJson<LeagueStandings[]>("/standings/", []);
 }
