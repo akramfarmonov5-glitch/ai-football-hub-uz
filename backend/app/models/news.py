@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, JSON
-from datetime import datetime
+from app.core.clock import utcnow
 from app.core.database import Base
 
 class News(Base):
@@ -14,4 +14,4 @@ class News(Base):
     source_url = Column(String, nullable=True)
     tags = Column(JSON, nullable=True)  # list of strings
     is_published = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow, index=True)

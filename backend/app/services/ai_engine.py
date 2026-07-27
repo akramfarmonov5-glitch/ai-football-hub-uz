@@ -1,39 +1,80 @@
+import asyncio
+import json
+import logging
 import os
 from functools import lru_cache
+from typing import Any, Dict, List
+
 from app.core.config import settings
 
+logger = logging.getLogger(__name__)
+
+
 class AIEngineService:
-    def __init__(self):
-        self.api_key = settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY")
+    """Gemini orqali matn generatsiyasi; kalit bo'lmasa shablonli matn qaytaradi.
+
+    Muhim: Gemini SDK sinxron ishlaydi. Uni to'g'ridan-to'g'ri async endpointda
+    chaqirish butun event loop'ni bloklaydi — ya'ni AI javobini kutayotgan
+    10 soniyada API ham, jonli WebSocket yangilanishlari ham to'xtab qoladi.
+    Shuning uchun har bir chaqiruv `asyncio.to_thread` orqali alohida oqimda
+    bajariladi.
+    """
+
+    def __init__(self) -> None:
+        self.api_key = settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY", "")
         self.enabled = bool(self.api_key)
-        self.model_name = "gemini-1.5-flash"
+        self.model_name = settings.GEMINI_MODEL
         self.client = None
         if self.enabled:
-            # Imported lazily so the deprecated-free SDK is only loaded when a key is set
+            # Kalit bo'lgandagina yuklaymiz — kalitsiz ishga tushishga xalaqit bermaydi
             from google import genai
-            self.client = genai.Client(api_key=self.api_key)
 
-    def generate_match_preview(self, home_team: str, away_team: str, league_name: str) -> str:
+            self.client = genai.Client(api_key=self.api_key)
+            logger.info("AI dvigateli yoqildi (model: %s)", self.model_name)
+        else:
+            logger.info("GEMINI_API_KEY yo'q — shablonli matnlar ishlatiladi")
+
+    # ------------------------------------------------------------------
+    # Ichki yordamchi
+    # ------------------------------------------------------------------
+    async def _generate(self, prompt: str) -> str:
+        """Gemini'ga so'rov yuboradi. Xato yoki kalit yo'q bo'lsa bo'sh satr."""
+        if not self.enabled:
+            return ""
+        try:
+            response = await asyncio.to_thread(
+                self.client.models.generate_content,
+                model=self.model_name,
+                contents=prompt,
+            )
+            return (response.text or "").strip()
+        except Exception as exc:
+            logger.warning("Gemini xatosi: %s", exc)
+            return ""
+
+    # ------------------------------------------------------------------
+    # Ommaviy metodlar
+    # ------------------------------------------------------------------
+    async def generate_match_preview(
+        self, home_team: str, away_team: str, league_name: str
+    ) -> str:
         prompt = f"""
         Siz sport tahlilchisisiz. Quyidagi futbol uchrashuvi uchun qisqa va qiziqarli o'yinoldi (match preview) tahlilini o'zbek tilida yozib bering.
         Liga: {league_name}
         Mezbon: {home_team}
         Mehmon: {away_team}
-        
+
         Tahlil quyidagilarni o'z ichiga olsin:
         1. Har bir jamoaning ayni paytdagi holati haqida qisqacha.
         2. Uchrashuv qanchalik muhimligi.
         3. Taxminiy o'yin uslubi.
         Maksimal 3-4 ta xatboshi bo'lsin.
         """
-        if self.enabled:
-            try:
-                response = self.client.models.generate_content(model=self.model_name, contents=prompt)
-                return response.text.strip()
-            except Exception as e:
-                print(f"Gemini API Error in generate_match_preview: {e}")
-        
-        # Rule-based fallback (Uzbek templates)
+        generated = await self._generate(prompt)
+        if generated:
+            return generated
+
+        # Qoidaga asoslangan zaxira matn (o'zbekcha shablon)
         return (
             f"**{league_name}** doirasida kutilayotgan murosasiz to'qnashuv! **{home_team}** o'z maydonida **{away_team}** jamoasini qabul qiladi.\n\n"
             f"Mezbon jamoa so'nggi turlarda barqaror o'yin ko'rsatmoqda va turnir jadvalida yuqori o'rinlar uchun kurashmoqda. "
@@ -42,23 +83,31 @@ class AIEngineService:
             f"O'z maydoni omili {home_team}ga qo'shimcha ishonch berishi aniq."
         )
 
-    def generate_post_match_analysis(self, home_team: str, away_team: str, score: str, stats: dict, events: list) -> str:
-        events_str = ", ".join([f"{e.get('time')}-daqiqa: {e.get('detail')}" for e in events]) if events else "Jiddiy voqealar yuz bermadi"
+    async def generate_post_match_analysis(
+        self,
+        home_team: str,
+        away_team: str,
+        score: str,
+        stats: Dict[str, Any],
+        events: List[Dict[str, Any]],
+    ) -> str:
+        events_str = (
+            ", ".join(f"{e.get('time')}-daqiqa: {e.get('detail')}" for e in events)
+            if events
+            else "Jiddiy voqealar yuz bermadi"
+        )
         prompt = f"""
         Siz professional futbol ekspertisiz. Tugagan o'yin bo'yicha tahliliy maqola yozib bering (o'zbek tilida).
         Uchrashuv: {home_team} {score} {away_team}
         Statistika: {stats}
         Asosiy voqealar: {events_str}
-        
+
         Tahlilda o'yinning burilish nuqtalari, statistik ko'rsatkichlarning tahlili va g'alaba sabablarini yoritib bering.
         """
-        if self.enabled:
-            try:
-                response = self.client.models.generate_content(model=self.model_name, contents=prompt)
-                return response.text.strip()
-            except Exception as e:
-                print(f"Gemini API Error in generate_post_match_analysis: {e}")
-                
+        generated = await self._generate(prompt)
+        if generated:
+            return generated
+
         return (
             f"**{home_team} - {away_team} ({score}) o'yini yakunlandi.**\n\n"
             f"Uchrashuv kutilganidek shiddatli kechdi. Statistika tahliliga ko'ra, "
@@ -68,11 +117,11 @@ class AIEngineService:
             f"Ikkala jamoa murabbiylari ham o'yindan so'ng taktik o'zgarishlar haqida to'xtalib o'tishlari kutilmoqda."
         )
 
-    def generate_news_article(self, topic: str) -> dict:
+    async def generate_news_article(self, topic: str) -> Dict[str, Any]:
         prompt = f"""
         Futbol olamidagi quyidagi mavzu bo'yicha qisqa, SEO-optimizatsiya qilingan sport yangiligi yozib bering (o'zbek tilida).
         Mavzu: {topic}
-        
+
         Natija JSON formatida bo'lsin:
         {{
             "title": "SEO sarlavha",
@@ -82,20 +131,24 @@ class AIEngineService:
         }}
         Faqat JSON qaytaring, boshqa hech qanday tekst bo'lmasin.
         """
-        if self.enabled:
+        generated = await self._generate(prompt)
+        if generated:
             try:
-                import json
-                response = self.client.models.generate_content(model=self.model_name, contents=prompt)
-                clean_text = response.text.strip().replace("```json", "").replace("```", "")
-                return json.loads(clean_text)
-            except Exception as e:
-                print(f"Gemini API Error in generate_news_article: {e}")
-        
-        # Rule-based fallback news
+                clean_text = generated.replace("```json", "").replace("```", "").strip()
+                article = json.loads(clean_text)
+                # Model kutilmagan shakl qaytarsa zaxira matnga tushamiz
+                if all(key in article for key in ("title", "summary", "content")):
+                    article.setdefault("tags", ["futbol"])
+                    return article
+                logger.warning("Gemini JSON'ida majburiy maydonlar yetishmayapti")
+            except json.JSONDecodeError as exc:
+                logger.warning("Gemini JSON'ini o'qib bo'lmadi: %s", exc)
+
+        # Qoidaga asoslangan zaxira yangilik
         slug_topic = topic.lower().replace(" ", "-")
         return {
             "title": f"Dahshatli Transfer: {topic} bo'yicha yangi tafsilotlar",
-            "summary": f"Yevropa futbolida yangi mish-mishlar va rasmiy muzokaralar qizg'in pallaga kirdi. Batafsil bizning maqolamizda.",
+            "summary": "Yevropa futbolida yangi mish-mishlar va rasmiy muzokaralar qizg'in pallaga kirdi. Batafsil bizning maqolamizda.",
             "content": (
                 f"### Transfer Bozoridagi So'nggi Yangiliklar\n\n"
                 f"Futbol olamida katta shov-shuvlarga sabab bo'layotgan **{topic}** masalasi kun tartibidagi eng muhim mavzu bo'lib turibdi.\n\n"
@@ -103,11 +156,11 @@ class AIEngineService:
                 f"Muxlislar ushbu kelishuvning yakunlanishini sabrsizlik bilan kutishmoqda.\n\n"
                 f"Batafsil yangiliklarni AI Football Hub Uzbekistan platformasida kuzatib boring!"
             ),
-            "tags": ["transfer", "futbol", "breaking", slug_topic]
+            "tags": ["transfer", "futbol", "breaking", slug_topic],
         }
 
 
 @lru_cache
 def get_ai_engine() -> AIEngineService:
-    """FastAPI dependency: returns a single shared AIEngineService instance."""
+    """FastAPI dependency: yagona umumiy AIEngineService nusxasi."""
     return AIEngineService()

@@ -1,11 +1,14 @@
 import asyncio
+import logging
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import AsyncSessionLocal
-from app.services.football_api import FootballAPIService
 from app.services.ai_engine import get_ai_engine
+from app.services.football_api import FootballAPIService
 from app.services.websocket import manager
+
+logger = logging.getLogger(__name__)
 
 
 def _match_update_payload(match) -> dict:
@@ -34,7 +37,7 @@ async def broadcast_updates(db: AsyncSession, updated_matches: list) -> None:
         await manager.broadcast(_match_update_payload(match))
 
         if match.status == "FT" and not match.ai_analysis:
-            match.ai_analysis = ai_service.generate_post_match_analysis(
+            match.ai_analysis = await ai_service.generate_post_match_analysis(
                 match.home_team_name,
                 match.away_team_name,
                 f"{match.score_home}-{match.score_away}",
@@ -46,7 +49,8 @@ async def broadcast_updates(db: AsyncSession, updated_matches: list) -> None:
 
 
 async def run_simulation_loop(interval_seconds: int = 10) -> None:
-    """Background task: advance live matches every N seconds and broadcast."""
+    """Fon vazifasi: har N soniyada o'yinlarni oldinga suradi va tarqatadi."""
+    logger.info("Simulyator ishga tushdi (interval: %ds)", interval_seconds)
     while True:
         await asyncio.sleep(interval_seconds)
         async with AsyncSessionLocal() as db:
@@ -54,5 +58,7 @@ async def run_simulation_loop(interval_seconds: int = 10) -> None:
                 updated_matches = await FootballAPIService(db).simulate_live_updates()
                 if updated_matches:
                     await broadcast_updates(db, updated_matches)
-            except Exception as e:
-                print(f"Error in simulation loop: {e}")
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("Simulyatsiya siklida xato")

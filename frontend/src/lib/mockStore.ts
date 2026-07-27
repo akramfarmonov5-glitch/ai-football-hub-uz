@@ -1,3 +1,5 @@
+import { estimateWinProbability } from "./probability";
+
 export interface Match {
   id: number;
   league_id: number;
@@ -223,19 +225,9 @@ export function simulateLocalTick() {
       stats.xG.away = parseFloat((stats.xG.away + (Math.random() > 0.8 ? 0.1 : 0)).toFixed(2));
     }
     
-    // Recalc win prob
-    const prob = { home: 33, draw: 34, away: 33 };
-    const diff = scoreHome - scoreAway;
-    if (diff > 0) {
-      prob.home = 50 + diff * 15;
-      prob.draw = Math.max(10, 30 - diff * 10);
-      prob.away = 100 - prob.home - prob.draw;
-    } else if (diff < 0) {
-      prob.away = 50 + Math.abs(diff) * 15;
-      prob.draw = Math.max(10, 30 - Math.abs(diff) * 10);
-      prob.home = 100 - prob.away - prob.draw;
-    }
-    
+    const prob = estimateWinProbability(scoreHome, scoreAway, nextMinute, nextStatus);
+
+
     return {
       ...m,
       minute: nextMinute,

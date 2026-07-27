@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   getLocalMatches,
   getLocalNews,
@@ -10,9 +10,17 @@ import {
 } from "./mockStore";
 import { apiUrl, WS_URL } from "./api";
 
+/** Qayta ulanish oralig'i: 1s, 2s, 4s ... maksimum 30s */
+const RECONNECT_BASE_MS = 1000;
+const RECONNECT_MAX_MS = 30000;
+
 /**
- * Loads matches + news, subscribes to live WebSocket updates, and falls back
- * to the local mock store (with a client-side ticker) when the backend is offline.
+ * O'yinlar va yangiliklarni yuklaydi, WebSocket orqali jonli yangilanishlarga
+ * obuna bo'ladi, backend ishlamasa lokal demo ma'lumotlarga o'tadi.
+ *
+ * Ilgari WebSocket uzilib qolsa hech narsa qilinmasdi: sayt jimgina eskirgan
+ * hisobni ko'rsatib turaverardi va "offline" belgisi ham chiqmasdi. Endi
+ * ulanish avtomatik tiklanadi va holat foydalanuvchiga to'g'ri ko'rsatiladi.
  */
 export function useMatches() {
   const [matches, setMatches] = useState<Match[]>([]);
@@ -20,20 +28,31 @@ export function useMatches() {
   const [loading, setLoading] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
 
+  const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const attemptsRef = useRef(0);
+  const closedByUsRef = useRef(false);
+  // Backend hech qachon javob bermadimi? Faqat shu holatda lokal demo ishlaydi.
+  const usingLocalDataRef = useRef(false);
+
   useEffect(() => {
+    closedByUsRef.current = false;
+
     async function fetchData() {
       try {
-        const matchesRes = await fetch(apiUrl("/matches/"));
-        const newsRes = await fetch(apiUrl("/news/"));
-        if (matchesRes.ok) {
-          setMatches(await matchesRes.json());
-          setIsOffline(false);
-        } else {
-          throw new Error("API error");
-        }
+        const [matchesRes, newsRes] = await Promise.all([
+          fetch(apiUrl("/matches/")),
+          fetch(apiUrl("/news/")),
+        ]);
+        if (!matchesRes.ok) throw new Error("API error");
+
+        setMatches(await matchesRes.json());
+        usingLocalDataRef.current = false;
+        setIsOffline(false);
         if (newsRes.ok) setNews(await newsRes.json());
-      } catch (err) {
-        console.warn("Backend offline, loading localStorage mocks.");
+      } catch {
+        console.warn("Backend ishlamayapti — lokal demo ma'lumotlar yuklanmoqda.");
+        usingLocalDataRef.current = true;
         setIsOffline(true);
         setMatches(getLocalMatches());
         setNews(getLocalNews());
@@ -43,32 +62,63 @@ export function useMatches() {
     }
     fetchData();
 
-    // Live updates over WebSocket
-    const socket = new WebSocket(WS_URL);
-    socket.onopen = () => setIsOffline(false);
-    socket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.event === "match_update") {
-          setMatches((prev) =>
-            prev.map((m) => (m.id === data.match.id ? { ...m, ...data.match } : m))
-          );
-        }
-      } catch (err) {
-        console.error(err);
-      }
-    };
+    function connect() {
+      if (closedByUsRef.current) return;
 
-    // Offline fallback ticker
-    const clientSimulationInterval = setInterval(() => {
-      if (socket.readyState !== WebSocket.OPEN) {
+      const socket = new WebSocket(WS_URL);
+      socketRef.current = socket;
+
+      socket.onopen = () => {
+        // Uzilib qolgan vaqtdagi yangilanishlarni o'tkazib yubormaslik uchun
+        // qayta ulangach ma'lumotni to'liq yangilaymiz.
+        if (attemptsRef.current > 0) fetchData();
+        attemptsRef.current = 0;
+        setIsOffline(false);
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.event === "match_update") {
+            setMatches((prev) =>
+              prev.map((m) => (m.id === data.match.id ? { ...m, ...data.match } : m))
+            );
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      };
+
+      // Uzilish — brauzer `onerror` dan keyin har doim `onclose` ni chaqiradi,
+      // shuning uchun qayta ulanishni faqat shu yerda boshqaramiz.
+      socket.onclose = () => {
+        if (closedByUsRef.current) return;
+        setIsOffline(true);
+
+        const delay = Math.min(
+          RECONNECT_BASE_MS * 2 ** attemptsRef.current,
+          RECONNECT_MAX_MS
+        );
+        attemptsRef.current += 1;
+        reconnectTimerRef.current = setTimeout(connect, delay);
+      };
+    }
+    connect();
+
+    // Zaxira ticker — faqat backend umuman yo'q bo'lganda ishlaydi.
+    // Aks holda WebSocket qisqa uzilganda haqiqiy hisob demo ma'lumot bilan
+    // almashtirilib yuborilardi.
+    const localTicker = setInterval(() => {
+      if (usingLocalDataRef.current) {
         setMatches(simulateLocalTick());
       }
     }, 4000);
 
     return () => {
-      socket.close();
-      clearInterval(clientSimulationInterval);
+      closedByUsRef.current = true;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      socketRef.current?.close();
+      clearInterval(localTicker);
     };
   }, []);
 

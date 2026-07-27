@@ -3,12 +3,10 @@
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
 import { Match } from "../lib/mockStore";
+import { formatTime } from "../lib/time";
 
 export function MatchCard({ match, live = false, finished = false }: { match: Match; live?: boolean; finished?: boolean }) {
-  const localTime = new Date(match.match_time).toLocaleTimeString("uz-UZ", {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
+  const localTime = formatTime(match.match_time);
 
   return (
     <Link

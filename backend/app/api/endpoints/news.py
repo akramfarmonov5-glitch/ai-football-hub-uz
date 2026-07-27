@@ -1,8 +1,9 @@
 import re
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
+from app.core.clock import utcnow
 from app.core.database import get_async_db
 from app.core.security import verify_admin
 from app.models.news import News
@@ -10,17 +11,35 @@ from app.schemas.news import NewsResponse, NewsCreate
 
 router = APIRouter()
 
+# O'zbekcha harflarni lotin ekvivalentiga o'tkazish (o' -> o, g' -> g, ...)
+_TRANSLITERATION = str.maketrans({"‘": "", "’": "", "'": "", "`": "", "ʻ": "", "ʼ": ""})
+
+
 def slugify(text: str) -> str:
-    # Basic slugification
-    text = text.lower()
-    text = re.sub(r'[^a-z0-9\s-]', '', text)
-    text = re.sub(r'[\s-]+', '-', text)
-    return text.strip('-')
+    """Sarlavhadan URL uchun yaroqli slug yasaydi.
+
+    Sarlavha butunlay lotin bo'lmagan harflardan iborat bo'lsa (masalan kirill),
+    ilgari bo'sh slug chiqib, maqola manzilsiz qolardi — endi zaxira nom beriladi.
+    """
+    text = text.lower().translate(_TRANSLITERATION)
+    text = re.sub(r"[^a-z0-9\s-]", "", text)
+    text = re.sub(r"[\s-]+", "-", text).strip("-")
+    if not text:
+        text = f"maqola-{utcnow().strftime('%Y%m%d-%H%M%S')}"
+    return text[:80].strip("-")
 
 @router.get("/", response_model=List[NewsResponse])
-async def get_news(db: AsyncSession = Depends(get_async_db)):
+async def get_news(
+    db: AsyncSession = Depends(get_async_db),
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+):
     result = await db.execute(
-        select(News).where(News.is_published == True).order_by(News.created_at.desc())
+        select(News)
+        .where(News.is_published == True)
+        .order_by(News.created_at.desc())
+        .limit(limit)
+        .offset(offset)
     )
     return result.scalars().all()
 

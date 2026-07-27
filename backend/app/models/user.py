@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
-from datetime import datetime
+from app.core.clock import utcnow
 from app.core.database import Base
 
 class User(Base):
@@ -10,4 +10,4 @@ class User(Base):
     username = Column(String, nullable=True)
     favorite_team = Column(String, nullable=True)
     is_admin = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)

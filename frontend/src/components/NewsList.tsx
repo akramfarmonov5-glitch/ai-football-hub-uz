@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Newspaper, ChevronRight } from "lucide-react";
 import { NewsItem } from "../lib/mockStore";
+import { formatDate } from "../lib/time";
 
 export function NewsList({ news }: { news: NewsItem[] }) {
   return (
@@ -36,7 +37,7 @@ export function NewsList({ news }: { news: NewsItem[] }) {
                 {item.summary}
               </p>
               <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 font-medium">
-                <span>{new Date(item.created_at).toLocaleDateString("uz-UZ")}</span>
+                <span>{formatDate(item.created_at)}</span>
                 <span className="flex items-center text-cyan-400 hover:underline">
                   O'qish <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
                 </span>

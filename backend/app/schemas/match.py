@@ -1,6 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from datetime import datetime
 from typing import Optional, List, Dict, Any
+
+from app.core.clock import as_utc
 
 class MatchBase(BaseModel):
     league_id: int
@@ -14,6 +16,16 @@ class MatchBase(BaseModel):
     score_away: int = 0
     match_time: datetime
     minute: Optional[int] = 0
+
+    @field_validator("match_time")
+    @classmethod
+    def _mark_as_utc(cls, value: datetime) -> datetime:
+        """Bazadagi naive vaqtga UTC belgisini qo'shadi.
+
+        Busiz JSON'da `2026-07-05T01:29:37` chiqib, brauzer uni mahalliy vaqt
+        deb o'qirdi va o'yin vaqti soatlarga siljirdi.
+        """
+        return as_utc(value)
 
 class MatchCreate(MatchBase):
     pass

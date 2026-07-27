@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Calendar, Tag, Share2, Globe } from "lucide-react";
 import { getLocalNews, NewsItem } from "../../../lib/mockStore";
 import { apiUrl } from "../../../lib/api";
+import { formatDateTime } from "../../../lib/time";
 
 export default function NewsDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const resolvedParams = use(params);
@@ -75,13 +76,7 @@ export default function NewsDetailPage({ params }: { params: Promise<{ slug: str
         <div className="flex items-center justify-between text-xs text-slate-500 border-y border-white/5 py-3">
           <span className="flex items-center">
             <Calendar className="w-3.5 h-3.5 mr-1" />
-            {new Date(news.created_at).toLocaleDateString("uz-UZ", {
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-              hour: "2-digit",
-              minute: "2-digit"
-            })}
+            {formatDateTime(news.created_at)}
           </span>
           <div className="flex space-x-4">
             <button 

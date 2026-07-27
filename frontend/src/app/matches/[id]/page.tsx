@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { getLocalMatches, Match } from "../../../lib/mockStore";
 import { apiUrl, WS_URL } from "../../../lib/api";
+import { formatDate, formatTime } from "../../../lib/time";
 
 export default function MatchDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -351,13 +352,13 @@ export default function MatchDetail({ params }: { params: Promise<{ id: string }
               <div className="flex justify-between">
                 <span>Sana:</span>
                 <span className="font-semibold text-slate-200">
-                  {new Date(match.match_time).toLocaleDateString("uz-UZ")}
+                  {formatDate(match.match_time)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span>Vaqt:</span>
                 <span className="font-semibold text-slate-200">
-                  {new Date(match.match_time).toLocaleTimeString("uz-UZ", { hour: "2-digit", minute: "2-digit" })}
+                  {formatTime(match.match_time)}
                 </span>
               </div>
               <div className="flex justify-between">

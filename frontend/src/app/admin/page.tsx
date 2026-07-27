@@ -25,6 +25,26 @@ const toInt = (value: string) => {
   return Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
 };
 
+type AuthResult = "valid" | "invalid" | "unconfigured" | "offline";
+
+/**
+ * Tokenni serverga tekshirtiradi. Ataylab toza funksiya — hech qanday holatni
+ * o'zgartirmaydi, shuning uchun uni ham forma, ham effekt ichidan chaqirsa
+ * bo'ladi. Haqiqiy himoya backenddagi X-Admin-Token tekshiruvida.
+ */
+async function verifyToken(token: string): Promise<AuthResult> {
+  try {
+    const res = await fetch(apiUrl("/admin/verify"), {
+      headers: { "X-Admin-Token": token },
+    });
+    if (res.ok) return "valid";
+    return res.status === 503 ? "unconfigured" : "invalid";
+  } catch {
+    // Server umuman javob bermayapti
+    return "offline";
+  }
+}
+
 export default function AdminDashboard() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [seedStatus, setSeedStatus] = useState<string>("");
@@ -46,74 +66,69 @@ export default function AdminDashboard() {
   const [overrideStatus, setOverrideStatus] = useState<string>("LIVE");
   const [overrideMinute, setOverrideMinute] = useState<number>(0);
 
-  /**
-   * Tokenni serverga tekshirtiradi — brauzer tomonida hech qanday parol
-   * saqlanmaydi, haqiqiy himoya backenddagi X-Admin-Token tekshiruvida.
-   * Backend umuman javob bermasa lokal demo rejimiga tushamiz.
-   */
-  const authorize = useCallback(async (token: string) => {
-    if (!token) return;
-    setAuthChecking(true);
-    setAuthError("");
+  const fetchMatches = useCallback(async () => {
     try {
-      const res = await fetch(apiUrl("/admin/verify"), {
-        headers: { "X-Admin-Token": token },
-      });
-      if (res.ok) {
+      const res = await fetch(apiUrl("/matches/"));
+      if (!res.ok) throw new Error();
+      setMatches(await res.json());
+      setIsOffline(false);
+    } catch {
+      console.warn("Backend ishlamayapti — lokal admin rejimi.");
+      setIsOffline(true);
+      setMatches(getLocalMatches());
+    }
+  }, []);
+
+  /** Tekshiruv natijasini interfeysga qo'llaydi. */
+  const applyAuthResult = useCallback(
+    (token: string, result: AuthResult) => {
+      if (result === "valid") {
         sessionStorage.setItem("admin_token", token);
+        setEnteredPasskey(token);
         setIsOffline(false);
         setIsAuthorized(true);
+        fetchMatches();
+        return;
+      }
+      if (result === "offline") {
+        // Faqat brauzerdagi demo ma'lumotlar bilan ishlaymiz
+        setIsOffline(true);
+        setIsAuthorized(true);
+        setMatches(getLocalMatches());
         return;
       }
       sessionStorage.removeItem("admin_token");
       setAuthError(
-        res.status === 503
+        result === "unconfigured"
           ? "Serverda ADMIN_TOKEN sozlanmagan (backend/.env). ❌"
           : "Noto'g'ri maxfiy kalit! ❌"
       );
-    } catch {
-      // Server ishlamayapti — faqat brauzerdagi demo ma'lumotlar bilan ishlaymiz.
-      setIsOffline(true);
-      setIsAuthorized(true);
-    } finally {
-      setAuthChecking(false);
-    }
-  }, []);
+    },
+    [fetchMatches]
+  );
 
-  const handleAuthSubmit = (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    authorize(enteredPasskey);
-  };
-
-  const fetchMatches = async () => {
-    try {
-      const res = await fetch(apiUrl("/matches/"));
-      if (res.ok) {
-        setMatches(await res.json());
-        setIsOffline(false);
-      } else {
-         throw new Error();
-      }
-    } catch (err) {
-      console.warn("Backend offline, using local admin mode.");
-      setIsOffline(true);
-      setMatches(getLocalMatches());
-    }
+    setAuthChecking(true);
+    setAuthError("");
+    const result = await verifyToken(enteredPasskey);
+    applyAuthResult(enteredPasskey, result);
+    setAuthChecking(false);
   };
 
   // Sahifa yangilanganda qaytadan token kiritmaslik uchun (faqat shu tab uchun).
   useEffect(() => {
     const saved = sessionStorage.getItem("admin_token");
-    if (saved) {
-      setEnteredPasskey(saved);
-      authorize(saved);
-    }
-  }, [authorize]);
+    if (!saved) return;
 
-  useEffect(() => {
-    if (isAuthorized) fetchMatches();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthorized]);
+    let cancelled = false;
+    verifyToken(saved).then((result) => {
+      if (!cancelled) applyAuthResult(saved, result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [applyAuthResult]);
 
   const triggerSeed = async () => {
     setSeedStatus("Seeding...");

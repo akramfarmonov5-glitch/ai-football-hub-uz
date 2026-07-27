@@ -45,7 +45,7 @@ async def trigger_simulation(db: AsyncSession = Depends(get_async_db)):
 
 @router.post("/generate-news")
 async def generate_ai_news(req: NewsGenerationRequest, db: AsyncSession = Depends(get_async_db), ai_service: AIEngineService = Depends(get_ai_engine)):
-    article_data = ai_service.generate_news_article(req.topic)
+    article_data = await ai_service.generate_news_article(req.topic)
 
     # Import slugify locally to reuse logic
     from app.api.endpoints.news import slugify
