@@ -13,12 +13,22 @@ services:
       SECRET_KEY: ${SECRET_KEY:-}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      # AI zaxirasi (Vertex AI). Service account fayli quyida mount qilinadi.
+      GCP_PROJECT_ID: ${GCP_PROJECT_ID:-}
+      VERTEX_LOCATION: ${VERTEX_LOCATION:-global}
+      VERTEX_MODEL: ${VERTEX_MODEL:-}
+      VERTEX_CREDENTIALS_FILE: ${VERTEX_CREDENTIALS_FILE:+/secrets/vertex-sa.json}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-http://localhost:3000}
       API_FOOTBALL_KEY: ${API_FOOTBALL_KEY:-}
       API_FOOTBALL_POLL_SECONDS: ${API_FOOTBALL_POLL_SECONDS:-900}
     volumes:
       - futbol-data:/data
+      # Vertex AI zaxirasi uchun service account fayli. Ishlatish:
+      #   VERTEX_CREDENTIALS_FILE=./backend/gen-lang-client-XXX-sa.json docker compose up
+      # Belgilanmasa /dev/null mount qilinadi va zaxira o'chirilgan qoladi
+      # (kalit fayli image ichiga hech qachon qo'shilmaydi — .dockerignore da).
+      - ${VERTEX_CREDENTIALS_FILE:-/dev/null}:/secrets/vertex-sa.json:ro
     restart: unless-stopped
 
   frontend:

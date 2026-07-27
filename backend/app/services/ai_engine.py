@@ -2,16 +2,31 @@ import asyncio
 import json
 import logging
 import os
+from dataclasses import dataclass
 from functools import lru_cache
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 
+@dataclass(frozen=True)
+class Provider:
+    """Matn generatsiya qiluvchi bitta manba."""
+
+    label: str
+    client: Any
+    model: str
+
+
 class AIEngineService:
-    """Gemini orqali matn generatsiyasi; kalit bo'lmasa shablonli matn qaytaradi.
+    """Matn generatsiyasi: Gemini API -> Vertex AI -> o'zbekcha shablon.
+
+    Uch qatlamli zaxira. Asosiy kalit ishlamay qolsa (limit tugadi, kalit
+    o'chirildi, tarmoq uzildi) so'rov service account orqali Vertex AI ga
+    yuboriladi. Ikkalasi ham ishlamasa shablonli matn qaytadi — sayt hech
+    qachon bo'sh kontent ko'rsatmaydi.
 
     Muhim: Gemini SDK sinxron ishlaydi. Uni to'g'ridan-to'g'ri async endpointda
     chaqirish butun event loop'ni bloklaydi — ya'ni AI javobini kutayotgan
@@ -22,35 +37,103 @@ class AIEngineService:
 
     def __init__(self) -> None:
         self.api_key = settings.GEMINI_API_KEY or os.environ.get("GEMINI_API_KEY", "")
-        self.enabled = bool(self.api_key)
         self.model_name = settings.GEMINI_MODEL
-        self.client = None
+
+        self.providers: List[Provider] = []
+        self._active_label: Optional[str] = None
+
+        primary = self._build_api_key_provider()
+        if primary:
+            self.providers.append(primary)
+
+        fallback = self._build_vertex_provider()
+        if fallback:
+            self.providers.append(fallback)
+
+        self.enabled = bool(self.providers)
         if self.enabled:
-            # Kalit bo'lgandagina yuklaymiz — kalitsiz ishga tushishga xalaqit bermaydi
+            logger.info(
+                "AI dvigateli yoqildi: %s",
+                " -> ".join(f"{p.label} ({p.model})" for p in self.providers),
+            )
+        else:
+            logger.info("AI manbasi sozlanmagan — shablonli matnlar ishlatiladi")
+
+    # ------------------------------------------------------------------
+    # Manbalarni tayyorlash
+    # ------------------------------------------------------------------
+    def _build_api_key_provider(self) -> Optional[Provider]:
+        if not self.api_key:
+            return None
+        try:
+            # SDK faqat kerak bo'lganda yuklanadi
             from google import genai
 
-            self.client = genai.Client(api_key=self.api_key)
-            logger.info("AI dvigateli yoqildi (model: %s)", self.model_name)
-        else:
-            logger.info("GEMINI_API_KEY yo'q — shablonli matnlar ishlatiladi")
+            return Provider("Gemini API", genai.Client(api_key=self.api_key), self.model_name)
+        except Exception as exc:
+            logger.warning("Gemini API klientini yaratib bo'lmadi: %s", exc)
+            return None
+
+    def _build_vertex_provider(self) -> Optional[Provider]:
+        """Service account orqali Vertex AI klienti (zaxira yo'l)."""
+        project = settings.vertex_project
+        if not project:
+            return None
+
+        try:
+            from google import genai
+
+            credentials_path = settings.vertex_credentials_path
+            credentials = None
+            if credentials_path:
+                from google.oauth2 import service_account
+
+                credentials = service_account.Credentials.from_service_account_file(
+                    str(credentials_path),
+                    scopes=["https://www.googleapis.com/auth/cloud-platform"],
+                )
+                logger.info("Vertex uchun service account: %s", credentials_path.name)
+            else:
+                # Kalit fayli ko'rsatilmagan — muhitdagi standart hisob (ADC)
+                logger.info("Vertex uchun ADC (standart hisob ma'lumotlari) ishlatiladi")
+
+            client = genai.Client(
+                vertexai=True,
+                project=project,
+                location=settings.VERTEX_LOCATION,
+                credentials=credentials,
+            )
+            return Provider("Vertex AI", client, settings.vertex_model)
+        except Exception as exc:
+            logger.warning("Vertex AI zaxirasini yoqib bo'lmadi: %s", exc)
+            return None
 
     # ------------------------------------------------------------------
     # Ichki yordamchi
     # ------------------------------------------------------------------
     async def _generate(self, prompt: str) -> str:
-        """Gemini'ga so'rov yuboradi. Xato yoki kalit yo'q bo'lsa bo'sh satr."""
-        if not self.enabled:
-            return ""
-        try:
-            response = await asyncio.to_thread(
-                self.client.models.generate_content,
-                model=self.model_name,
-                contents=prompt,
-            )
-            return (response.text or "").strip()
-        except Exception as exc:
-            logger.warning("Gemini xatosi: %s", exc)
-            return ""
+        """Manbalarni navbat bilan sinaydi. Hech biri ishlamasa bo'sh satr."""
+        for provider in self.providers:
+            try:
+                response = await asyncio.to_thread(
+                    provider.client.models.generate_content,
+                    model=provider.model,
+                    contents=prompt,
+                )
+                text = (response.text or "").strip()
+                if text:
+                    # Manba almashganini bir marta qayd etamiz, har chaqiruvda emas
+                    if self._active_label != provider.label:
+                        logger.info("AI manbasi: %s (%s)", provider.label, provider.model)
+                        self._active_label = provider.label
+                    return text
+                logger.warning("%s bo'sh javob qaytardi", provider.label)
+            except Exception as exc:
+                logger.warning("%s xatosi: %s", provider.label, exc)
+
+        if self.providers:
+            logger.warning("Barcha AI manbalari ishlamadi — shablonli matn ishlatiladi")
+        return ""
 
     # ------------------------------------------------------------------
     # Ommaviy metodlar

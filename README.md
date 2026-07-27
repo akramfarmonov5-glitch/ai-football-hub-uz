@@ -69,8 +69,31 @@ bepul tarifning kunlik 100 so'rov limitiga sig'adi (~96/kun). So'rov
 muvaffaqiyatsiz bo'lsa hech narsa o'ylab topilmaydi, oxirgi ma'lum holat
 saqlanadi.
 
-AI tahlillari `GEMINI_API_KEY` bo'lganda Gemini orqali, bo'lmasa o'zbekcha
-shablonlar orqali tayyorlanadi — ikkala holatda ham sayt to'liq ishlaydi.
+### AI: uch qatlamli zaxira
+
+Matn generatsiyasi ketma-ket uch manbadan urinadi:
+
+1. **Gemini API** — `GEMINI_API_KEY` bilan (asosiy yo'l)
+2. **Vertex AI** — `GCP_PROJECT_ID` + service account bilan (zaxira)
+3. **O'zbekcha shablonlar** — hech biri ishlamasa
+
+Asosiy kalit limitga urilsa, o'chirilsa yoki tarmoq uzilsa so'rov avtomatik
+Vertex'ga o'tadi. Foydalanuvchi farqni sezmaydi, log'da esa
+`AI manbasi: Vertex AI` qatori chiqadi.
+
+Zaxirani yoqish uchun `.env` da:
+
+```bash
+GCP_PROJECT_ID="loyiha-id"
+VERTEX_LOCATION="global"
+VERTEX_CREDENTIALS_FILE="service-account.json"   # backend/ ga nisbatan yo'l
+VERTEX_MODEL=""                                   # bo'sh = GEMINI_MODEL bilan bir xil
+```
+
+> **Diqqat:** Vertex'da model nomlari Gemini API'dagidan farq qilishi mumkin
+> va regionga bog'liq. Masalan `gemini-3.5-flash-lite` `global` da bor, lekin
+> `us-central1` da yo'q. Model topilmasa log'da `404 NOT_FOUND` chiqadi —
+> o'shanda `VERTEX_LOCATION` yoki `VERTEX_MODEL` ni o'zgartiring.
 
 ---
 

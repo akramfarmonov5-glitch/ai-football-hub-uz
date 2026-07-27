@@ -1,5 +1,6 @@
+import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -20,9 +21,25 @@ class Settings(BaseSettings):
     # Bo'sh qoldirilsa — backend/futbol.db (absolyut yo'l) ishlatiladi.
     DATABASE_URL: str = ""
 
-    # --- AI ---
+    # --- AI: asosiy yo'l (Gemini API kaliti) ---
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-2.5-flash"
+
+    # --- AI: zaxira yo'l (Vertex AI + service account) ---
+    # Asosiy kalit ishlamay qolsa shu yo'ldan urinib ko'riladi. Ikkalasi ham
+    # ishlamasa AI matnlari o'zbekcha shablonlarga tushadi.
+    GCP_PROJECT_ID: str = ""
+    # Foydalanuvchilarda `VERTEX_PROJECT` nomi ham uchraydi — ikkalasi ham qabul qilinadi
+    VERTEX_PROJECT: str = ""
+    # `global` yangi Gemini modellari uchun ishlaydi; eskiroq modellar
+    # ba'zan faqat aniq regionda (masalan us-central1) mavjud bo'ladi.
+    VERTEX_LOCATION: str = "global"
+    # Service account JSON fayli (backend/ ga nisbatan yoki absolyut yo'l).
+    # Bo'sh bo'lsa GOOGLE_APPLICATION_CREDENTIALS, undan keyin ADC ishlatiladi.
+    VERTEX_CREDENTIALS_FILE: str = ""
+    # Vertex'dagi model nomi Gemini API'dagidan farq qilishi mumkin.
+    # Bo'sh bo'lsa GEMINI_MODEL ishlatiladi.
+    VERTEX_MODEL: str = ""
 
     # --- Telegram bot ---
     TELEGRAM_BOT_TOKEN: str = ""
@@ -65,6 +82,29 @@ class Settings(BaseSettings):
             relative = url[len("sqlite:///./") :]
             return f"sqlite:///{(BACKEND_DIR / relative).as_posix()}"
         return url
+
+    @property
+    def vertex_project(self) -> str:
+        """GCP loyiha ID'si — ikkala nomdan qaysi biri to'ldirilgan bo'lsa."""
+        return (self.GCP_PROJECT_ID or self.VERTEX_PROJECT).strip()
+
+    @property
+    def vertex_model(self) -> str:
+        return (self.VERTEX_MODEL or self.GEMINI_MODEL).strip()
+
+    @property
+    def vertex_credentials_path(self) -> Optional[Path]:
+        """Service account fayliga absolyut yo'l (mavjud bo'lsa)."""
+        raw = self.VERTEX_CREDENTIALS_FILE.strip() or os.environ.get(
+            "GOOGLE_APPLICATION_CREDENTIALS", ""
+        )
+        if not raw:
+            return None
+
+        path = Path(raw)
+        if not path.is_absolute():
+            path = BACKEND_DIR / path
+        return path if path.is_file() else None
 
     @property
     def api_football_league_ids(self) -> List[int]:
