@@ -1,0 +1,138 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Yangi push kelsa, eski ishga tushish bekor qilinadi
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Maxfiy fayllar repoga tushib qolmaganini tekshirish.
+  # Eng arzon job — birinchi bo'lib ishlaydi va boshqalarini bloklaydi.
+  # ---------------------------------------------------------------------------
+  xavfsizlik:
+    name: Maxfiy fayllar tekshiruvi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Kuzatilayotgan fayllar orasida maxfiylari bormi
+        run: |
+          topilgan=$(git ls-files | grep -E '(^|/)\.env$|\.env\.local$|-sa\.json$|service[-_]account.*\.json$|credentials.*\.json$|\.pem$|\.p12$|(^|/)[^/]*\.key$' || true)
+          if [ -n "$topilgan" ]; then
+            echo "::error::Repoda maxfiy fayllar kuzatilmoqda:"
+            echo "$topilgan"
+            exit 1
+          fi
+          echo "Maxfiy fayl topilmadi ✓"
+
+      - name: Baza fayllari kuzatilmayotganini tekshirish
+        run: |
+          topilgan=$(git ls-files | grep -E '\.(db|sqlite3?)$' || true)
+          if [ -n "$topilgan" ]; then
+            echo "::error::Baza fayllari repoda:"
+            echo "$topilgan"
+            exit 1
+          fi
+          echo "Baza fayli topilmadi ✓"
+
+  # ---------------------------------------------------------------------------
+  # Backend: testlar (ehtimollar, vaqt zonasi, hayot sikli, API xavfsizligi,
+  # migratsiyalarning modellarga mosligi)
+  # ---------------------------------------------------------------------------
+  backend:
+    name: Backend testlari
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Bog'liqliklarni o'rnatish
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Testlar
+        run: python -m pytest -q
+
+      - name: Migratsiyalar modellarga mosligi
+        # pytest ichida ham bor, lekin alohida qadam sifatida xato sababi
+        # darhol ko'rinadi
+        run: python -m pytest tests/test_migrations.py -q
+
+  # ---------------------------------------------------------------------------
+  # Frontend: turlar, lint va production build
+  # ---------------------------------------------------------------------------
+  frontend:
+    name: Frontend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Bog'liqliklarni o'rnatish
+        run: npm ci
+
+      - name: TypeScript tekshiruvi
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        # Backend CI da ishlamaydi — sahifalar dinamik, shuning uchun build
+        # ma'lumotsiz ham muvaffaqiyatli tugashi kerak
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+
+  # ---------------------------------------------------------------------------
+  # Docker: image'lar yig'ilishini tekshirish (faqat main'ga push bo'lganda)
+  # ---------------------------------------------------------------------------
+  docker:
+    name: Docker image'lari
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
