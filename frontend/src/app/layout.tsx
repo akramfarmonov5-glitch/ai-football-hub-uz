@@ -1,6 +1,21 @@
 import type { Metadata } from "next";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+
+/**
+ * Shrift build paytida yuklab olinadi va o'z domenimizdan beriladi.
+ * Ilgari u Google serveridan `<link>` orqali olinardi: har bir tashrifda
+ * tashqi so'rov, sekinroq yuklanish va matn sakrashi (CLS) bo'lardi.
+ *
+ * Outfit — variable shrift, shuning uchun `weight` ko'rsatilmaydi: barcha
+ * qalinliklar (300-800) bitta fayldan keladi.
+ */
+const outfit = Outfit({
+  subsets: ["latin", "latin-ext"],
+  display: "swap",
+  variable: "--font-outfit",
+});
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const TELEGRAM_BOT_URL =
@@ -45,15 +60,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="uz" className="h-full dark">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="uz" className={`${outfit.variable} h-full dark`}>
       <body className="min-h-full flex flex-col bg-[#060913] text-slate-100 font-sans selection:bg-cyan-500 selection:text-black">
         <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#060913]/80 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">

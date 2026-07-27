@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* `font-sans` utilitasi next/font yuklagan Outfit'ni ishlatsin.
+   --font-outfit o'zgaruvchisi layout.tsx da <html> ga qo'yiladi va ichida
+   next/font hisoblab bergan zaxira shrift ham bor (matn sakramasligi uchun). */
+@theme inline {
+  --font-sans: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+}
+
 :root {
   --background: #020617;
   --foreground: #f8fafc;
@@ -14,7 +21,7 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: 'Outfit', sans-serif;
+  /* Shrift `font-sans` utilitasi orqali keladi (yuqoridagi @theme ga qarang) */
   overflow-x: hidden;
   position: relative;
 }
