@@ -97,26 +97,38 @@ VERTEX_MODEL=""                                   # bo'sh = GEMINI_MODEL bilan b
 
 ---
 
-## Ma'lumot manbai: demo yoki haqiqiy
+## Ma'lumot manbai
 
-Loyiha ikki rejimda ishlaydi va buni **yashirmaydi**.
+Uchta rejim, ustuvorlik shu tartibda:
 
-**Demo (standart).** `API_FOOTBALL_KEY` bo'sh bo'lsa simulyator o'yinlarni
-o'zi to'qib chiqaradi — haqiqiy jamoa nomlari bilan, lekin natijalar
-o'ylab topilgan. Bunday holatda saytning har bir sahifasi tepasida sariq
+**1. TheSportsDB (standart, bepul).** Nima uchun aynan shu: bepul kalitida
+**O'zbekiston Superligasi** bor (liga 4794). Boshqa bepul xizmatlarda
+(masalan football-data.org) faqat 12 ta yirik Yevropa ligasi mavjud, bu esa
+O'zbekiston auditoriyasi uchun mo'ljallangan saytga to'g'ri kelmaydi.
+
+```bash
+SPORTSDB_ENABLED=true
+SPORTSDB_API_KEY="3"                  # "3" — ochiq sinov kaliti; o'zingiznikini oling
+SPORTSDB_LEAGUES="4794,4328,4335"     # O'zbekiston, EPL, La Liga
+SPORTSDB_POLL_SECONDS=600
+```
+
+Cheklov: bepul tarifda **jonli daqiqama-daqiqa hisob yo'q** (u $9/oy
+tarifida). Shuning uchun o'yinlar faqat ikki holatda bo'ladi — boshlanmagan
+(NS) yoki tugagan (FT). Soxta "jonli daqiqa" ko'rsatilmaydi.
+
+Turnir jadvali `lookuptable.php` dan, ya'ni **rasmiy** jadval olinadi.
+O'yinlardan hisoblab bo'lmaydi: bepul tarifda faqat bir necha kunlik
+o'yinlar keladi, mavsum boshidan beri hamma natija bazada yo'q.
+
+**2. API-Football (ixtiyoriy, pullik).** `API_FOOTBALL_KEY` qo'yilsa
+TheSportsDB o'rniga shu ishlatiladi — jonli hisob bilan.
+
+**3. Simulyatsiya.** Ikkalasi ham o'chirilgan bo'lsa. Bunda o'yinlar
+to'qib chiqariladi, shuning uchun saytning har bir sahifasi tepasida sariq
 ogohlantirish chiqadi (`components/SimulationNotice.tsx`). Busiz tashrif
 buyuruvchi "Liverpool 1-0 Arsenal" ni bugungi haqiqiy natija deb qabul
 qilardi.
-
-**Haqiqiy.** `.env` da `API_FOOTBALL_KEY` to'ldirilsa — simulyatsiya
-butunlay o'chadi, faqat API-Football ma'lumotlari ishlatiladi va
-ogohlantirish yo'qoladi:
-
-```bash
-API_FOOTBALL_KEY="kalitingiz"        # https://www.api-football.com/ (bepul: 100 so'rov/kun)
-API_FOOTBALL_LEAGUES="39,140"        # kuzatiladigan ligalar
-API_FOOTBALL_POLL_SECONDS=900        # 15 daqiqa = ~96 so'rov/kun
-```
 
 Joriy rejimni bilish: `GET /api/v1/meta/` -> `{"data_source": "...", "is_simulated": ...}`
 

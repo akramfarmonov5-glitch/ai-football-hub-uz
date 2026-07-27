@@ -15,6 +15,7 @@ from app.models.news import News
 from app.services.ai_engine import get_ai_engine
 from app.services.football_api import FootballAPIService
 from app.services.notifier import notify_goals
+from app.services.sportsdb import SportsDBService
 from app.services.websocket import manager
 
 # Har bir qadamda nechta o'yinga AI tahlili tayyorlanadi. Cheklov ataylab:
@@ -156,27 +157,35 @@ async def run_simulation_loop(interval_seconds: Optional[int] = None) -> None:
         davom etadi, tugaydi va jadvalga yangilari qo'shiladi.
     """
     interval = interval_seconds or settings.SIMULATION_INTERVAL_SECONDS
-    poll_seconds = settings.API_FOOTBALL_POLL_SECONDS
     last_real_fetch: Optional[float] = None
 
-    logger.info(
-        "Simulyator ishga tushdi (qadam: %ds, rejim: %s)",
-        interval,
-        "real API" if settings.API_FOOTBALL_KEY else "simulyatsiya",
-    )
+    if settings.API_FOOTBALL_KEY:
+        rejim, poll_seconds = "API-Football", settings.API_FOOTBALL_POLL_SECONDS
+    elif settings.SPORTSDB_ENABLED and settings.sportsdb_league_ids:
+        rejim, poll_seconds = "TheSportsDB", settings.SPORTSDB_POLL_SECONDS
+    else:
+        rejim, poll_seconds = "simulyatsiya", 0
+
+    logger.info("Fon vazifasi ishga tushdi (qadam: %ds, manba: %s)", interval, rejim)
 
     while True:
         await asyncio.sleep(interval)
         async with AsyncSessionLocal() as db:
             try:
                 service = FootballAPIService(db)
+                sportsdb = SportsDBService(db)
 
-                if service.has_api_key:
+                if service.has_api_key or sportsdb.enabled:
+                    # Haqiqiy manba: so'rovlar oralig'iga rioya qilamiz
                     now = time.monotonic()
                     if last_real_fetch is not None and now - last_real_fetch < poll_seconds:
-                        continue  # navbatdagi so'rov vaqti hali kelmadi
+                        continue
                     last_real_fetch = now
-                    updated_matches = await service.fetch_and_update_real_matches()
+
+                    if service.has_api_key:
+                        updated_matches = await service.fetch_and_update_real_matches()
+                    else:
+                        updated_matches = await sportsdb.sync_matches()
                 else:
                     updated_matches = await service.advance_matches(allow_real_fetch=False)
 

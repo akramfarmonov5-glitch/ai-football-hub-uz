@@ -25,6 +25,8 @@ os.environ["ADMIN_TOKEN"] = "test-admin-token"
 os.environ["GCP_PROJECT_ID"] = ""
 os.environ["VERTEX_PROJECT"] = ""
 os.environ["VERTEX_CREDENTIALS_FILE"] = ""
+# TheSportsDB ham o'chiriladi — testlar tarmoqqa umuman chiqmasligi kerak
+os.environ["SPORTSDB_ENABLED"] = "false"
 
 import pytest  # noqa: E402
 import pytest_asyncio  # noqa: E402

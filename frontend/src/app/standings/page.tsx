@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Trophy } from "lucide-react";
 
-import { getStandings } from "../../lib/server-api";
+import { getMeta, getStandings } from "../../lib/server-api";
 import { StandingsTable } from "../../components/StandingsTable";
 
 export const metadata: Metadata = {
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 export default async function StandingsPage() {
-  const leagues = await getStandings();
+  const [leagues, meta] = await Promise.all([getStandings(), getMeta()]);
 
   if (leagues.length === 0) {
     return (
@@ -60,9 +60,18 @@ export default async function StandingsPage() {
       </div>
 
       <p className="text-[11px] text-slate-600 leading-relaxed border-t border-white/5 pt-4">
-        Jadval tugagan o'yinlar asosida avtomatik hisoblanadi: g'alaba — 3 ochko,
-        durang — 1 ochko. Ochkolar teng bo'lganda gollar farqi, keyin urilgan
-        gollar soni hisobga olinadi.{" "}
+        {meta.is_simulated ? (
+          <>
+            Jadval tugagan o'yinlar asosida avtomatik hisoblanadi: g'alaba — 3
+            ochko, durang — 1 ochko. Ochkolar teng bo'lganda gollar farqi, keyin
+            urilgan gollar soni hisobga olinadi.
+          </>
+        ) : (
+          <>
+            Jadval rasmiy manbadan olinadi va muntazam yangilanib turadi.
+            Mavsumi hali boshlanmagan ligalar ko'rsatilmaydi.
+          </>
+        )}{" "}
         <Link href="/" className="text-cyan-400 hover:underline">
           O'yin markaziga qaytish
         </Link>

@@ -58,7 +58,18 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
     ]
 
-    # --- Tashqi futbol API (ixtiyoriy; bo'sh bo'lsa simulyatsiya ishlaydi) ---
+    # --- TheSportsDB: haqiqiy ma'lumotning asosiy manbai ---
+    # Bepul kalitida O'zbekiston Superligasi bor. "3" — ochiq sinov kaliti;
+    # o'z bepul kalitingizni olish tavsiya etiladi (thesportsdb.com).
+    # Cheklov: bepul tarifda jonli daqiqama-daqiqa hisob yo'q, faqat
+    # boshlanmagan (NS) va tugagan (FT) o'yinlar.
+    SPORTSDB_ENABLED: bool = True
+    SPORTSDB_API_KEY: str = "3"
+    # 4794=O'zbekiston Superligasi, 4328=Angliya Premyer-ligasi, 4335=La Liga
+    SPORTSDB_LEAGUES: str = "4794,4328,4335"
+    SPORTSDB_POLL_SECONDS: int = 600
+
+    # --- API-Football (ixtiyoriy, pullik; qo'yilsa TheSportsDB o'rniga ishlaydi) ---
     API_FOOTBALL_KEY: str = ""
     API_FOOTBALL_LEAGUES: str = "39,140"
     # API-Football bepul tarifi kuniga 100 so'rov beradi. 900 soniya (15 daqiqa)
@@ -105,6 +116,21 @@ class Settings(BaseSettings):
         if not path.is_absolute():
             path = BACKEND_DIR / path
         return path if path.is_file() else None
+
+    @property
+    def sportsdb_league_ids(self) -> List[int]:
+        return [
+            int(part.strip())
+            for part in self.SPORTSDB_LEAGUES.split(",")
+            if part.strip().isdigit()
+        ]
+
+    @property
+    def uses_real_data(self) -> bool:
+        """Saytda haqiqiy o'yin ma'lumotlari ko'rsatiladimi?"""
+        return bool(self.API_FOOTBALL_KEY) or (
+            self.SPORTSDB_ENABLED and bool(self.sportsdb_league_ids)
+        )
 
     @property
     def api_football_league_ids(self) -> List[int]:

@@ -11,6 +11,7 @@ Saralash qoidasi (UEFA/FIFA odatiy tartibi):
   4. jamoa nomi (alifbo — natija barqaror bo'lishi uchun)
 """
 
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, Iterable, List, Optional
 
@@ -18,6 +19,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.match import Match
+
+logger = logging.getLogger(__name__)
 
 WIN_POINTS = 3
 DRAW_POINTS = 1
@@ -136,7 +139,26 @@ def build_tables(matches: Iterable[Match]) -> List[dict]:
 async def get_standings(
     db: AsyncSession, league_id: Optional[int] = None
 ) -> List[dict]:
-    """Bazadan tugagan o'yinlarni olib jadvallarni qaytaradi."""
+    """Turnir jadvali.
+
+    Ikki manba:
+      * **TheSportsDB** — rasmiy jadval. Haqiqiy rejimda o'yinlardan hisoblab
+        bo'lmaydi: bepul tarifda faqat bir necha kunlik o'yinlar olinadi,
+        mavsum boshidan beri hamma natija bazada yo'q.
+      * **Bazadagi o'yinlar** — simulyatsiya rejimida (barcha natijalar
+        o'zimizda bo'lgani uchun jadval to'liq hisoblanadi).
+    """
+    from app.services.sportsdb import SportsDBService  # aylanma importni oldini olish
+
+    sportsdb = SportsDBService(db)
+    if sportsdb.enabled:
+        tables = await sportsdb.fetch_standings()
+        if tables:
+            if league_id is not None:
+                tables = [t for t in tables if t["league_id"] == league_id]
+            return tables
+        logger.warning("TheSportsDB jadvali bo'sh — o'yinlardan hisoblanadi")
+
     query = select(Match).where(Match.status == "FT").order_by(Match.match_time.asc())
     if league_id is not None:
         query = query.where(Match.league_id == league_id)

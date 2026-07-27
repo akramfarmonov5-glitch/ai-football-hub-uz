@@ -95,7 +95,14 @@ class FootballAPIService:
         return due
 
     async def ensure_upcoming_fixtures(self) -> list:
-        """Jadvalda doim bir nechta bo'lajak o'yin turishini ta'minlaydi."""
+        """Jadvalda doim bir nechta bo'lajak o'yin turishini ta'minlaydi.
+
+        Haqiqiy manba ulangan bo'lsa hech narsa yaratilmaydi — aks holda
+        o'ylab topilgan o'yinlar haqiqiylari bilan aralashib ketardi.
+        """
+        if settings.uses_real_data:
+            return []
+
         upcoming = await self.db.scalar(
             select(func.count()).select_from(Match).where(Match.status == "NS")
         ) or 0
@@ -278,8 +285,8 @@ class FootballAPIService:
         Real API kaliti bo'lsa seed qilinmaydi — soxta va haqiqiy o'yinlar
         aralashib ketmasligi uchun.
         """
-        if self.has_api_key:
-            logger.info("API kaliti bor — namunaviy o'yinlar yozilmaydi")
+        if settings.uses_real_data:
+            logger.info("Haqiqiy ma'lumot manbai ulangan — namunaviy o'yinlar yozilmaydi")
             return
 
         count = await self.db.scalar(select(func.count()).select_from(Match))

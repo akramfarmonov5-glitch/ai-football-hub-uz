@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "media.api-sports.io" },
       { protocol: "https", hostname: "upload.wikimedia.org" },
+      // TheSportsDB jamoa gerblari
+      { protocol: "https", hostname: "r2.thesportsdb.com" },
+      { protocol: "https", hostname: "www.thesportsdb.com" },
     ],
   },
 };
