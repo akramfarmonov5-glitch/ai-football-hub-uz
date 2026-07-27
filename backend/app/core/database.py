@@ -11,9 +11,11 @@ Base = declarative_base()
 # Sync engine — used by the Telegram bot (aiogram handlers run their own
 # blocking SessionLocal() sessions).
 # ---------------------------------------------------------------------------
-connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+DATABASE_URL = settings.database_url  # absolyut yo'l (config.py ga qarang)
 
-engine = create_engine(settings.DATABASE_URL, connect_args=connect_args)
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+
+engine = create_engine(DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -38,7 +40,7 @@ def _to_async_url(url: str) -> str:
     return url
 
 
-ASYNC_DATABASE_URL = _to_async_url(settings.DATABASE_URL)
+ASYNC_DATABASE_URL = _to_async_url(DATABASE_URL)
 
 async_engine = create_async_engine(ASYNC_DATABASE_URL)
 # expire_on_commit=False so ORM objects stay usable (for response serialization)

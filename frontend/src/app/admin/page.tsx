@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { 
   Database, 
   Play, 
@@ -19,6 +19,12 @@ import {
 } from "../../lib/mockStore";
 import { apiUrl } from "../../lib/api";
 
+/** Bo'shatilgan input `parseInt` dan NaN qaytaradi — uni 0 ga aylantiramiz. */
+const toInt = (value: string) => {
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? 0 : Math.max(0, parsed);
+};
+
 export default function AdminDashboard() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [seedStatus, setSeedStatus] = useState<string>("");
@@ -32,22 +38,51 @@ export default function AdminDashboard() {
   const [enteredPasskey, setEnteredPasskey] = useState("");
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [authError, setAuthError] = useState("");
-  
+  const [authChecking, setAuthChecking] = useState(false);
+
   // Custom manual override state
   const [overrideHomeScore, setOverrideHomeScore] = useState<number>(0);
   const [overrideAwayScore, setOverrideAwayScore] = useState<number>(0);
   const [overrideStatus, setOverrideStatus] = useState<string>("LIVE");
   const [overrideMinute, setOverrideMinute] = useState<number>(0);
 
+  /**
+   * Tokenni serverga tekshirtiradi — brauzer tomonida hech qanday parol
+   * saqlanmaydi, haqiqiy himoya backenddagi X-Admin-Token tekshiruvida.
+   * Backend umuman javob bermasa lokal demo rejimiga tushamiz.
+   */
+  const authorize = useCallback(async (token: string) => {
+    if (!token) return;
+    setAuthChecking(true);
+    setAuthError("");
+    try {
+      const res = await fetch(apiUrl("/admin/verify"), {
+        headers: { "X-Admin-Token": token },
+      });
+      if (res.ok) {
+        sessionStorage.setItem("admin_token", token);
+        setIsOffline(false);
+        setIsAuthorized(true);
+        return;
+      }
+      sessionStorage.removeItem("admin_token");
+      setAuthError(
+        res.status === 503
+          ? "Serverda ADMIN_TOKEN sozlanmagan (backend/.env). ❌"
+          : "Noto'g'ri maxfiy kalit! ❌"
+      );
+    } catch {
+      // Server ishlamayapti — faqat brauzerdagi demo ma'lumotlar bilan ishlaymiz.
+      setIsOffline(true);
+      setIsAuthorized(true);
+    } finally {
+      setAuthChecking(false);
+    }
+  }, []);
+
   const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Simple secure check for demo purposes, can check settings.SECRET_KEY or hardcoded 'admin123'
-    if (enteredPasskey === "admin123") {
-      setIsAuthorized(true);
-      setAuthError("");
-    } else {
-      setAuthError("Noto'g'ri maxfiy kalit! ❌");
-    }
+    authorize(enteredPasskey);
   };
 
   const fetchMatches = async () => {
@@ -66,9 +101,19 @@ export default function AdminDashboard() {
     }
   };
 
+  // Sahifa yangilanganda qaytadan token kiritmaslik uchun (faqat shu tab uchun).
   useEffect(() => {
-    fetchMatches();
-  }, []);
+    const saved = sessionStorage.getItem("admin_token");
+    if (saved) {
+      setEnteredPasskey(saved);
+      authorize(saved);
+    }
+  }, [authorize]);
+
+  useEffect(() => {
+    if (isAuthorized) fetchMatches();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthorized]);
 
   const triggerSeed = async () => {
     setSeedStatus("Seeding...");
@@ -225,8 +270,11 @@ export default function AdminDashboard() {
               🔒
             </div>
             <h2 className="text-xl font-bold tracking-tight">Admin Autentifikatsiyasi</h2>
-            <p className="text-xs text-slate-450 leading-relaxed">Simulyator va kontentni boshqarish uchun maxfiy kalitni kiriting.</p>
-            <p className="text-[10px] text-slate-600">Demo kalit: <code className="bg-white/5 px-1 py-0.5 rounded text-cyan-400 font-mono">admin123</code></p>
+            <p className="text-xs text-slate-400 leading-relaxed">Simulyator va kontentni boshqarish uchun maxfiy kalitni kiriting.</p>
+            <p className="text-[10px] text-slate-600">
+              Kalit <code className="bg-white/5 px-1 py-0.5 rounded text-cyan-400 font-mono">backend/.env</code> faylidagi{" "}
+              <code className="bg-white/5 px-1 py-0.5 rounded text-cyan-400 font-mono">ADMIN_TOKEN</code> qiymati
+            </p>
           </div>
 
           <form onSubmit={handleAuthSubmit} className="space-y-4 relative z-10">
@@ -241,11 +289,12 @@ export default function AdminDashboard() {
               />
             </div>
             {authError && <p className="text-xs text-rose-400 font-medium">{authError}</p>}
-            <button 
+            <button
               type="submit"
-              className="w-full bg-cyan-500 hover:bg-cyan-600 text-slate-950 font-bold py-2.5 px-4 rounded-xl transition-all text-xs cursor-pointer shadow-lg shadow-cyan-500/10"
+              disabled={authChecking || !enteredPasskey}
+              className="w-full bg-cyan-500 hover:bg-cyan-600 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-bold py-2.5 px-4 rounded-xl transition-all text-xs cursor-pointer shadow-lg shadow-cyan-500/10"
             >
-              Tasdiqlash 🔑
+              {authChecking ? "Tekshirilmoqda..." : "Tasdiqlash 🔑"}
             </button>
           </form>
         </div>
@@ -351,7 +400,7 @@ export default function AdminDashboard() {
                   <input 
                     type="number" 
                     value={overrideHomeScore}
-                    onChange={(e) => setOverrideHomeScore(parseInt(e.target.value))}
+                    onChange={(e) => setOverrideHomeScore(toInt(e.target.value))}
                     className="w-full bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
                   />
                 </div>
@@ -360,7 +409,7 @@ export default function AdminDashboard() {
                   <input 
                     type="number" 
                     value={overrideAwayScore}
-                    onChange={(e) => setOverrideAwayScore(parseInt(e.target.value))}
+                    onChange={(e) => setOverrideAwayScore(toInt(e.target.value))}
                     className="w-full bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
                   />
                 </div>
@@ -381,7 +430,7 @@ export default function AdminDashboard() {
                   <input 
                     type="number" 
                     value={overrideMinute}
-                    onChange={(e) => setOverrideMinute(parseInt(e.target.value))}
+                    onChange={(e) => setOverrideMinute(toInt(e.target.value))}
                     className="w-full bg-slate-900 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs focus:outline-none"
                   />
                 </div>

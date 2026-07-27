@@ -4,6 +4,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from app.core.database import get_async_db
+from app.core.security import verify_admin
 from app.models.news import News
 from app.schemas.news import NewsResponse, NewsCreate
 
@@ -30,7 +31,9 @@ async def get_news_detail(slug: str, db: AsyncSession = Depends(get_async_db)):
         raise HTTPException(status_code=404, detail="News article not found")
     return news
 
-@router.post("/", response_model=NewsResponse)
+# Maqola yaratish — faqat admin tokeni bilan (aks holda har kim saytga
+# o'zi xohlagan kontentni chop eta olardi).
+@router.post("/", response_model=NewsResponse, dependencies=[Depends(verify_admin)])
 async def create_news_article(news_in: NewsCreate, db: AsyncSession = Depends(get_async_db)):
     base_slug = slugify(news_in.title)
     # Check for uniqueness

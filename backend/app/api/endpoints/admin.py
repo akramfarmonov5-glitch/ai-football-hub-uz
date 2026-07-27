@@ -1,7 +1,9 @@
+from typing import Literal
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.core.database import get_async_db
 from app.models.match import Match
 from app.models.news import News
@@ -13,13 +15,22 @@ from app.services.simulator import broadcast_updates
 router = APIRouter()
 
 class NewsGenerationRequest(BaseModel):
-    topic: str
+    topic: str = Field(min_length=3, max_length=200)
 
 class MatchOverrideRequest(BaseModel):
-    score_home: int
-    score_away: int
-    status: str
-    minute: int
+    score_home: int = Field(ge=0, le=99)
+    score_away: int = Field(ge=0, le=99)
+    status: Literal["NS", "LIVE", "FT"]
+    minute: int = Field(ge=0, le=130)
+
+@router.get("/verify")
+async def verify_token():
+    """Admin panel kiritilgan tokenni tekshirish uchun chaqiradi.
+
+    Router darajasidagi `verify_admin` dependency ishlaydi: token noto'g'ri
+    bo'lsa bu yergacha yetib kelinmaydi (401 qaytadi).
+    """
+    return {"ok": True}
 
 @router.post("/seed")
 async def seed_data(db: AsyncSession = Depends(get_async_db)):

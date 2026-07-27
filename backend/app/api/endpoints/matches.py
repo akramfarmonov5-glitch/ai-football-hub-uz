@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from app.core.database import get_async_db
+from app.core.security import verify_admin
 from app.models.match import Match
 from app.schemas.match import MatchResponse
 from app.services.ai_engine import AIEngineService, get_ai_engine
@@ -26,7 +27,9 @@ async def get_match(match_id: int, db: AsyncSession = Depends(get_async_db)):
         raise HTTPException(status_code=404, detail="Match not found")
     return match
 
-@router.post("/{match_id}/preview", response_model=MatchResponse)
+# AI generatsiyasi pullik tashqi API'ga murojaat qiladi — himoyasiz qoldirilsa
+# har qanday bot uni cheksiz chaqirib hisobni bo'shatishi mumkin.
+@router.post("/{match_id}/preview", response_model=MatchResponse, dependencies=[Depends(verify_admin)])
 async def generate_preview(match_id: int, db: AsyncSession = Depends(get_async_db), ai_service: AIEngineService = Depends(get_ai_engine)):
     match = await db.get(Match, match_id)
     if not match:
@@ -39,7 +42,7 @@ async def generate_preview(match_id: int, db: AsyncSession = Depends(get_async_d
     await db.refresh(match)
     return match
 
-@router.post("/{match_id}/analysis", response_model=MatchResponse)
+@router.post("/{match_id}/analysis", response_model=MatchResponse, dependencies=[Depends(verify_admin)])
 async def generate_analysis(match_id: int, db: AsyncSession = Depends(get_async_db), ai_service: AIEngineService = Depends(get_ai_engine)):
     match = await db.get(Match, match_id)
     if not match:
