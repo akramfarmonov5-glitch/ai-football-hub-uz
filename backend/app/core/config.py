@@ -44,6 +44,12 @@ class Settings(BaseSettings):
     # --- Tashqi futbol API (ixtiyoriy; bo'sh bo'lsa simulyatsiya ishlaydi) ---
     API_FOOTBALL_KEY: str = ""
     API_FOOTBALL_LEAGUES: str = "39,140"
+    # API-Football bepul tarifi kuniga 100 so'rov beradi. 900 soniya (15 daqiqa)
+    # = kuniga ~96 so'rov, ya'ni limitga sig'adi. Pullik tarifda kamaytiring.
+    API_FOOTBALL_POLL_SECONDS: int = 900
+
+    # Simulyator qadamlari orasidagi vaqt (o'yin daqiqasi shuncha vaqtda o'tadi)
+    SIMULATION_INTERVAL_SECONDS: int = 10
 
     @property
     def database_url(self) -> str:

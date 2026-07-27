@@ -39,7 +39,8 @@ async def seed_data(db: AsyncSession = Depends(get_async_db)):
 
 @router.post("/simulate")
 async def trigger_simulation(db: AsyncSession = Depends(get_async_db)):
-    updated_matches = await FootballAPIService(db).simulate_live_updates()
+    """Simulyatsiyani bir qadam oldinga suradi (fon siklidagi bilan bir xil)."""
+    updated_matches = await FootballAPIService(db).advance_matches(allow_real_fetch=False)
     await broadcast_updates(db, updated_matches)
     return {"message": f"Simulated {len(updated_matches)} live matches."}
 

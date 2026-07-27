@@ -9,30 +9,28 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.clock import to_naive_utc, utcnow
 from app.core.config import settings
 from app.models.match import Match
+from app.services.fixtures import (
+    UPCOMING_TARGET,
+    build_fixture,
+    initial_stats,
+    next_simulated_id,
+    pair_key,
+    scorers_for,
+)
 from app.services.probability import estimate_win_probability
 
 logger = logging.getLogger(__name__)
 
-# Simulyatsiya uchun jamoa o'yinchilari (real API kaliti bo'lmaganda ishlatiladi)
-TEAM_PLAYERS = {
-    "Real Madrid": ["Mbappe", "Vinicius Jr", "Bellingham", "Rodrygo", "Valverde"],
-    "Barcelona": ["Lewandowski", "Yamal", "Raphinha", "Pedri", "Gundogan"],
-    "Arsenal": ["Saka", "Havertz", "Martinelli", "Odegaard", "Rice"],
-    "Manchester City": ["Haaland", "Foden", "De Bruyne", "Silva", "Kovacic"],
-    "Pakhtakor": ["Ceran", "Hamdamov", "Adhamzoda", "Usmonov", "Kholmatov"],
-    "Navbahor": ["Turgunboev", "Tabatadze", "Boltaboev", "Jahongirov", "Iskanderov"],
-}
-
-# Har qanday jamoa uchun umumiy zaxira o'yinchi nomlari
-GENERIC_PLAYERS = ["No. 9", "No. 10", "No. 7", "No. 11", "No. 8"]
-
 # API-Football'da jonli deb hisoblanadigan holatlar
 LIVE_STATUSES = {"1H", "2H", "HT", "ET", "P", "BT"}
 
+# Bo'lajak o'yinlar shu oraliqda rejalashtiriladi (daqiqa)
+KICKOFF_SPREAD_MINUTES = (20, 150)
+
 
 def get_players_for_team(team_name: str) -> list[str]:
-    """Berilgan jamoa uchun o'yinchilar ro'yxatini qaytaradi (gol muallifini tanlash uchun)."""
-    return TEAM_PLAYERS.get(team_name, GENERIC_PLAYERS)
+    """Berilgan jamoa uchun o'yinchilar ro'yxati (gol muallifini tanlash uchun)."""
+    return scorers_for(team_name)
 
 
 class FootballAPIService:
@@ -45,14 +43,100 @@ class FootballAPIService:
     def has_api_key(self) -> bool:
         return bool(self.api_key)
 
+    # ------------------------------------------------------------------
+    # Asosiy kirish nuqtasi
+    # ------------------------------------------------------------------
+    async def advance_matches(self, allow_real_fetch: bool = True) -> list:
+        """Bir "tik": jadvalni tirik holatda ushlab turadi.
+
+        Ilgari faqat LIVE o'yinlar bir daqiqaga surilardi — 90-daqiqadan keyin
+        hamma o'yin FT bo'lib, sayt abadiy muzlab qolardi. Endi to'liq sikl:
+          1. vaqti kelgan o'yinlar boshlanadi  (NS -> LIVE)
+          2. jonli o'yinlar oldinga suriladi   (LIVE -> ... -> FT)
+          3. jadval yangi o'yinlar bilan to'ldiriladi
+        """
+        if self.has_api_key and allow_real_fetch:
+            return await self.fetch_and_update_real_matches()
+
+        updated = []
+        updated.extend(await self.start_due_matches())
+        updated.extend(await self.simulate_live_updates())
+        await self.ensure_upcoming_fixtures()
+        return updated
+
+    async def start_due_matches(self) -> list:
+        """Boshlanish vaqti kelgan o'yinlarni jonli holatga o'tkazadi."""
+        result = await self.db.execute(
+            select(Match).where(Match.status == "NS", Match.match_time <= utcnow())
+        )
+        due = list(result.scalars().all())
+
+        for match in due:
+            match.status = "LIVE"
+            match.minute = 1
+            match.stats = match.stats or initial_stats()
+            match.timeline = match.timeline or []
+            match.win_probability = estimate_win_probability(
+                match.score_home, match.score_away, 1, "LIVE"
+            )
+            self.db.add(match)
+            logger.info(
+                "O'yin boshlandi: %s - %s (%s)",
+                match.home_team_name,
+                match.away_team_name,
+                match.league_name,
+            )
+
+        if due:
+            await self.db.commit()
+        return due
+
+    async def ensure_upcoming_fixtures(self) -> list:
+        """Jadvalda doim bir nechta bo'lajak o'yin turishini ta'minlaydi."""
+        upcoming = await self.db.scalar(
+            select(func.count()).select_from(Match).where(Match.status == "NS")
+        ) or 0
+
+        missing = UPCOMING_TARGET - upcoming
+        if missing <= 0:
+            return []
+
+        id_rows = await self.db.execute(select(Match.id))
+        used_ids = set(id_rows.scalars().all())
+
+        # Jadvalda turgan juftliklar — bir xil bahs takrorlanmasligi uchun
+        pending_rows = await self.db.execute(
+            select(Match.home_team_name, Match.away_team_name).where(
+                Match.status.in_(("NS", "LIVE"))
+            )
+        )
+        taken_pairs = {pair_key(home, away) for home, away in pending_rows.all()}
+
+        created = []
+        for _ in range(missing):
+            match_id = next_simulated_id(used_ids)
+            used_ids.add(match_id)
+            fixture = build_fixture(
+                match_id, random.randint(*KICKOFF_SPREAD_MINUTES), taken_pairs
+            )
+            taken_pairs.add(pair_key(fixture.home_team_name, fixture.away_team_name))
+            self.db.add(fixture)
+            created.append(fixture)
+
+        await self.db.commit()
+        logger.info("Jadvalga %d ta yangi o'yin qo'shildi", len(created))
+        return created
+
     async def fetch_and_update_real_matches(self):
         """API-Football'dan jonli o'yinlarni oladi.
 
-        Kalit bo'lmasa yoki so'rov muvaffaqiyatsiz bo'lsa — simulyatsiyaga qaytadi.
+        So'rov muvaffaqiyatsiz bo'lsa bo'sh ro'yxat qaytaradi — real ma'lumot
+        ustiga o'ylab topilgan hisob yozilmasligi uchun. Sayt oxirgi ma'lum
+        holatni ko'rsatib turadi, keyingi so'rovda yangilanadi.
         """
         if not self.has_api_key:
             logger.info("API_FOOTBALL_KEY sozlanmagan — simulyatsiya rejimi")
-            return await self.simulate_live_updates()
+            return await self.advance_matches(allow_real_fetch=False)
 
         headers = {
             "x-rapidapi-host": "v3.football.api-sports.io",
@@ -69,12 +153,12 @@ class FootballAPIService:
                 data = response.json()
         except Exception as exc:
             logger.warning("API-Football so'rovi muvaffaqiyatsiz: %s", exc)
-            return await self.simulate_live_updates()
+            return []
 
         fixtures = data.get("response") or []
         if not fixtures:
             logger.info("API-Football: ayni paytda jonli o'yin yo'q")
-            return await self.simulate_live_updates()
+            return []
 
         wanted_leagues = settings.api_football_league_ids
         updated = 0
@@ -188,7 +272,15 @@ class FootballAPIService:
         return updated_matches
 
     async def seed_mock_matches_if_empty(self):
-        # Keeps initial seeds intact so the workspace has instant matches
+        """Bo'sh bazani namunaviy o'yinlar bilan to'ldiradi (birinchi ishga tushirish).
+
+        Real API kaliti bo'lsa seed qilinmaydi — soxta va haqiqiy o'yinlar
+        aralashib ketmasligi uchun.
+        """
+        if self.has_api_key:
+            logger.info("API kaliti bor — namunaviy o'yinlar yozilmaydi")
+            return
+
         count = await self.db.scalar(select(func.count()).select_from(Match))
         if count and count > 0:
             return
