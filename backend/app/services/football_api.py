@@ -38,6 +38,9 @@ class FootballAPIService:
         self.db = db
         self.api_key = settings.API_FOOTBALL_KEY
         self.base_url = "https://v3.football.api-sports.io"
+        # Shu qadamda urilgan gollar — xabarnoma yuborish uchun
+        # (simulator.py ularni notifier'ga uzatadi).
+        self.new_goals: list[tuple[Match, dict]] = []
 
     @property
     def has_api_key(self) -> bool:
@@ -250,16 +253,14 @@ class FootballAPIService:
                     else:
                         match.score_away += 1
 
-                    timeline = list(match.timeline or [])
-                    timeline.append(
-                        {
-                            "time": match.minute,
-                            "type": "Goal",
-                            "detail": f"{scorer} (Gol!)",
-                            "team": team,
-                        }
-                    )
-                    match.timeline = timeline
+                    event = {
+                        "time": match.minute,
+                        "type": "Goal",
+                        "detail": f"{scorer} (Gol!)",
+                        "team": team,
+                    }
+                    match.timeline = [*(match.timeline or []), event]
+                    self.new_goals.append((match, event))
 
             match.win_probability = estimate_win_probability(
                 match.score_home, match.score_away, match.minute, match.status

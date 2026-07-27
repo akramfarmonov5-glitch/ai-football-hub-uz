@@ -11,6 +11,7 @@ from app.core.database import AsyncSessionLocal
 from app.models.match import Match
 from app.services.ai_engine import get_ai_engine
 from app.services.football_api import FootballAPIService
+from app.services.notifier import notify_goals
 from app.services.websocket import manager
 
 # Har bir qadamda nechta o'yinga AI tahlili tayyorlanadi. Cheklov ataylab:
@@ -119,6 +120,10 @@ async def run_simulation_loop(interval_seconds: Optional[int] = None) -> None:
 
                 if updated_matches:
                     await broadcast_updates(db, updated_matches)
+
+                # Sevimli jamoasi gol urgan foydalanuvchilarga Telegram xabari
+                if service.new_goals:
+                    await notify_goals(db, service.new_goals)
 
                 await generate_missing_previews(db)
             except asyncio.CancelledError:

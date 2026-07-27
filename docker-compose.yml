@@ -1,0 +1,63 @@
+services:
+  backend:
+    build: ./backend
+    container_name: futbol-backend
+    ports:
+      - "8000:8000"
+    environment:
+      # Baza konteyner ichidagi doimiy hajmda saqlanadi
+      DATABASE_URL: "sqlite:////data/futbol.db"
+      BACKEND_CORS_ORIGINS: '["http://localhost:3000"]'
+      # Maxfiy qiymatlar .env fayldan olinadi (repoda yo'q)
+      ADMIN_TOKEN: ${ADMIN_TOKEN:?ADMIN_TOKEN majburiy - .env faylida belgilang}
+      SECRET_KEY: ${SECRET_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-http://localhost:3000}
+      API_FOOTBALL_KEY: ${API_FOOTBALL_KEY:-}
+      API_FOOTBALL_POLL_SECONDS: ${API_FOOTBALL_POLL_SECONDS:-900}
+    volumes:
+      - futbol-data:/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Brauzer backendga tashqi manzil orqali boradi
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8000}
+        NEXT_PUBLIC_WS_URL: ${PUBLIC_WS_URL:-ws://localhost:8000/ws}
+        NEXT_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-http://localhost:3000}
+        NEXT_PUBLIC_TELEGRAM_BOT_URL: ${TELEGRAM_BOT_URL:-https://t.me/}
+    container_name: futbol-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      # Server komponentlar ichki tarmoq orqali boradi (tezroq)
+      API_INTERNAL_URL: "http://backend:8000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  bot:
+    build: ./backend
+    container_name: futbol-bot
+    command: ["python", "-m", "bot.bot"]
+    environment:
+      DATABASE_URL: "sqlite:////data/futbol.db"
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      PUBLIC_SITE_URL: ${PUBLIC_SITE_URL:-http://localhost:3000}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+    volumes:
+      # Bot backend bilan bir xil bazani o'qiydi
+      - futbol-data:/data
+    depends_on:
+      - backend
+    restart: unless-stopped
+    profiles:
+      # Bot faqat kerak bo'lganda: docker compose --profile bot up
+      - bot
+
+volumes:
+  futbol-data:

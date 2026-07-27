@@ -1,0 +1,15 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+tests/
+*.db
+*.db-journal
+.env
+.env.*
+!.env.example
+*-sa.json
+*credentials*.json

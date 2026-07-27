@@ -1,135 +1,218 @@
+import logging
+from datetime import timedelta
+
 from aiogram import Router, F, types
-from app.core.database import SessionLocal
+from aiogram.enums import ParseMode
+from sqlalchemy import select
+
+from app.core.clock import utcnow
+from app.core.config import settings
+from app.core.database import AsyncSessionLocal
 from app.models.match import Match
 from app.models.news import News
 from bot.keyboards.menus import match_actions_keyboard
-from datetime import datetime, timedelta
 
+logger = logging.getLogger(__name__)
 router = Router()
+
+# O'zbekiston vaqti (UTC+5). Bazada vaqt naive UTC saqlanadi.
+UZ_OFFSET = timedelta(hours=5)
+
+
+def _local_time(value) -> str:
+    """Bazadagi UTC vaqtni Toshkent vaqtiga o'giradi."""
+    if value is None:
+        return "—"
+    return (value + UZ_OFFSET).strftime("%H:%M")
+
+
+def _xg(match: Match) -> str:
+    """xG ko'rsatkichi. Statistika hali yo'q bo'lsa ham xato bermaydi."""
+    stats = match.stats or {}
+    xg = stats.get("xG") or {}
+    return f"{xg.get('home', 0)} - {xg.get('away', 0)}"
+
 
 @router.message(F.text == "Live o'yinlar ⚽")
 async def show_live_matches(message: types.Message):
-    db = SessionLocal()
-    try:
-        live_matches = db.query(Match).filter(Match.status == "LIVE").all()
-        if not live_matches:
-            await message.answer("Ayni paytda jonli efirda o'yinlar yo'q 📭")
-            return
-        
-        for m in live_matches:
-            text = (
-                f"🏆 **{m.league_name}** | {m.minute}-daqiqa\n"
-                f"⚔️ **{m.home_team_name} {m.score_home} - {m.score_away} {m.away_team_name}**\n"
-                f"📈 xG: {m.stats.get('xG', {}).get('home', 0)} - {m.stats.get('xG', {}).get('away', 0) if m.stats else 0}\n"
-            )
-            await message.answer(text, reply_markup=match_actions_keyboard(m.id))
-    finally:
-        db.close()
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(Match).where(Match.status == "LIVE").order_by(Match.match_time.desc())
+        )
+        live_matches = list(result.scalars().all())
+
+    if not live_matches:
+        await message.answer("Ayni paytda jonli efirda o'yinlar yo'q 📭")
+        return
+
+    for m in live_matches:
+        text = (
+            f"🏆 *{m.league_name}* | {m.minute}-daqiqa\n"
+            f"⚔️ *{m.home_team_name} {m.score_home} - {m.score_away} {m.away_team_name}*\n"
+            f"📈 xG: {_xg(m)}\n"
+        )
+        await message.answer(
+            text,
+            reply_markup=match_actions_keyboard(m.id),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+
 
 @router.message(F.text == "Bugungi o'yinlar 📅")
 async def show_today_matches(message: types.Message):
-    db = SessionLocal()
-    try:
-        # Today's matches (we'll fetch matches starting today/NS)
-        today = datetime.utcnow().date()
-        matches = db.query(Match).all()
-        
-        filtered = [m for m in matches if m.match_time.date() == today]
-        if not filtered:
-             await message.answer("Bugun o'yinlar rejalashtirilmagan 📅")
-             return
+    """Bugungi (Toshkent vaqti bo'yicha) o'yinlar jadvali."""
+    now_local = utcnow() + UZ_OFFSET
+    day_start_utc = now_local.replace(hour=0, minute=0, second=0, microsecond=0) - UZ_OFFSET
+    day_end_utc = day_start_utc + timedelta(days=1)
 
-        text = "📅 **Bugungi o'yinlar jadvali:**\n\n"
-        for m in filtered:
-            time_str = (m.match_time + timedelta(hours=5)).strftime("%H:%M") # Local time UZT
-            status_text = "Jonli 🔴" if m.status == "LIVE" else "Tugadi 🏁" if m.status == "FT" else f"Boshlanish vaqti: {time_str}"
-            text += f"🏆 {m.league_name}\n⚽ {m.home_team_name} vs {m.away_team_name}\n📌 Status: {status_text}\n"
-            if m.status in ["LIVE", "FT"]:
-                text += f"🔢 Hisob: {m.score_home} - {m.score_away}\n"
-            text += "-------------------------\n"
-            
-        await message.answer(text)
-    finally:
-        db.close()
+    async with AsyncSessionLocal() as db:
+        # Filtr bazada bajariladi — ilgari hamma o'yin yuklanib, Python
+        # tomonida saralanardi.
+        result = await db.execute(
+            select(Match)
+            .where(Match.match_time >= day_start_utc, Match.match_time < day_end_utc)
+            .order_by(Match.match_time.asc())
+            .limit(50)
+        )
+        todays = list(result.scalars().all())
+
+    if not todays:
+        await message.answer("Bugun o'yinlar rejalashtirilmagan 📅")
+        return
+
+    lines = ["📅 *Bugungi o'yinlar jadvali:*", ""]
+    for m in todays:
+        if m.status == "LIVE":
+            status_text = f"Jonli 🔴 ({m.minute}-daqiqa)"
+        elif m.status == "FT":
+            status_text = "Tugadi 🏁"
+        else:
+            status_text = f"Boshlanish vaqti: {_local_time(m.match_time)}"
+
+        lines.append(f"🏆 {m.league_name}")
+        lines.append(f"⚽ {m.home_team_name} vs {m.away_team_name}")
+        lines.append(f"📌 {status_text}")
+        if m.status in ("LIVE", "FT"):
+            lines.append(f"🔢 Hisob: {m.score_home} - {m.score_away}")
+        lines.append("-------------------------")
+
+    await message.answer("\n".join(lines), parse_mode=ParseMode.MARKDOWN)
+
 
 @router.message(F.text == "Yangiliklar 📰")
 async def show_news(message: types.Message):
-    db = SessionLocal()
-    try:
-        news_list = db.query(News).filter(News.is_published == True).order_by(News.created_at.desc()).limit(5).all()
-        if not news_list:
-            await message.answer("Yangiliklar topilmadi 📰")
-            return
-        
-        for n in news_list:
-            text = (
-                f"📰 **{n.title}**\n\n"
-                f"{n.summary or ''}\n\n"
-                f"🔗 [Batafsil o'qish](http://localhost:3000/news/{n.slug})"
-            )
-            await message.answer(text, parse_mode="Markdown")
-    finally:
-        db.close()
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(News)
+            .where(News.is_published == True)  # noqa: E712 — SQL solishtiruvi
+            .order_by(News.created_at.desc())
+            .limit(5)
+        )
+        news_list = list(result.scalars().all())
+
+    if not news_list:
+        await message.answer("Yangiliklar topilmadi 📰")
+        return
+
+    for n in news_list:
+        text = (
+            f"📰 *{n.title}*\n\n"
+            f"{n.summary or ''}\n\n"
+            f"🔗 [Batafsil o'qish]({settings.PUBLIC_SITE_URL}/news/{n.slug})"
+        )
+        await message.answer(text, parse_mode=ParseMode.MARKDOWN)
+
 
 @router.message(F.text == "AI Prognozlar 🔮")
 async def show_ai_predictions(message: types.Message):
-    db = SessionLocal()
-    try:
-        # Show matches that are not started (NS) or LIVE
-        upcoming = db.query(Match).filter(Match.status != "FT").all()
-        if not upcoming:
-            await message.answer("Prognozlar uchun mos o'yinlar yo'q 🔮")
-            return
-        
-        for m in upcoming:
-            prob = m.win_probability or {"home": 33, "draw": 34, "away": 33}
-            text = (
-                f"🔮 **AI Prognozi: {m.home_team_name} - {m.away_team_name}**\n"
-                f"🏆 Liga: {m.league_name}\n\n"
-                f"📊 G'alaba qozonish ehtimollari:\n"
-                f"🏠 Mezbon: {prob.get('home') or 0}%\n"
-                f"🤝 Durang: {prob.get('draw') or 0}%\n"
-                f"✈️ Mehmon: {prob.get('away') or 0}%\n\n"
-                f"ℹ️ *AI Tahlil:* {m.ai_preview or 'Tez orada tahlil tayyorlanadi.'}"
-            )
-            await message.answer(text, parse_mode="Markdown")
-    finally:
-        db.close()
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(
+            select(Match)
+            .where(Match.status != "FT")
+            .order_by(Match.match_time.asc())
+            .limit(5)
+        )
+        upcoming = list(result.scalars().all())
+
+    if not upcoming:
+        await message.answer("Prognozlar uchun mos o'yinlar yo'q 🔮")
+        return
+
+    for m in upcoming:
+        prob = m.win_probability or {"home": 33, "draw": 34, "away": 33}
+        preview = m.ai_preview or "Tez orada tahlil tayyorlanadi."
+        # Telegram xabari 4096 belgidan oshmasligi kerak
+        if len(preview) > 700:
+            preview = preview[:700].rsplit(" ", 1)[0] + "..."
+
+        text = (
+            f"🔮 *AI Prognozi: {m.home_team_name} - {m.away_team_name}*\n"
+            f"🏆 Liga: {m.league_name}\n\n"
+            f"📊 G'alaba qozonish ehtimollari:\n"
+            f"🏠 Mezbon: {prob.get('home', 0)}%\n"
+            f"🤝 Durang: {prob.get('draw', 0)}%\n"
+            f"✈️ Mehmon: {prob.get('away', 0)}%\n\n"
+            f"ℹ️ _AI Tahlil:_ {preview}"
+        )
+        await message.answer(text, parse_mode=ParseMode.MARKDOWN)
+
 
 @router.callback_query(F.data.startswith("ai_analysis_"))
 async def callback_ai_analysis(callback: types.CallbackQuery):
-    match_id = int(callback.data.split("_")[2])
-    db = SessionLocal()
-    try:
-        match = db.query(Match).filter(Match.id == match_id).first()
-        if not match:
-            await callback.answer("O'yin topilmadi")
-            return
-        
-        analysis = match.ai_analysis or match.ai_preview or "Hozircha tahlillar tayyor emas."
-        await callback.message.answer(f"🧠 **AI Tahlili ({match.home_team_name} vs {match.away_team_name}):**\n\n{analysis}")
-        await callback.answer()
-    finally:
-        db.close()
+    match_id = _match_id_from(callback.data)
+    if match_id is None:
+        await callback.answer("Noto'g'ri so'rov")
+        return
+
+    async with AsyncSessionLocal() as db:
+        match = await db.get(Match, match_id)
+
+    if not match:
+        await callback.answer("O'yin topilmadi")
+        return
+
+    analysis = match.ai_analysis or match.ai_preview or "Hozircha tahlillar tayyor emas."
+    if len(analysis) > 3500:
+        analysis = analysis[:3500].rsplit(" ", 1)[0] + "..."
+
+    await callback.message.answer(
+        f"🧠 *AI Tahlili ({match.home_team_name} vs {match.away_team_name}):*\n\n{analysis}",
+        parse_mode=ParseMode.MARKDOWN,
+    )
+    await callback.answer()
+
 
 @router.callback_query(F.data.startswith("ai_prob_"))
 async def callback_ai_prob(callback: types.CallbackQuery):
-    match_id = int(callback.data.split("_")[2])
-    db = SessionLocal()
+    match_id = _match_id_from(callback.data)
+    if match_id is None:
+        await callback.answer("Noto'g'ri so'rov")
+        return
+
+    async with AsyncSessionLocal() as db:
+        match = await db.get(Match, match_id)
+
+    if not match:
+        await callback.answer("O'yin topilmadi")
+        return
+
+    prob = match.win_probability or {"home": 33, "draw": 34, "away": 33}
+    text = (
+        f"📊 *G'alaba ehtimoli ({match.home_team_name} vs {match.away_team_name}):*\n\n"
+        f"🏠 {match.home_team_name}: {prob.get('home', 0)}%\n"
+        f"🤝 Durang: {prob.get('draw', 0)}%\n"
+        f"✈️ {match.away_team_name}: {prob.get('away', 0)}%"
+    )
+    await callback.message.answer(text, parse_mode=ParseMode.MARKDOWN)
+    await callback.answer()
+
+
+def _match_id_from(data: str | None) -> int | None:
+    """`ai_prob_2001` -> 2001. Buzuq callback ma'lumotida xato bermaydi."""
+    if not data:
+        return None
     try:
-        match = db.query(Match).filter(Match.id == match_id).first()
-        if not match:
-            await callback.answer("O'yin topilmadi")
-            return
-        
-        prob = match.win_probability or {"home": 33, "draw": 34, "away": 33}
-        text = (
-            f"📊 **G'alaba ehtimoli tahlili ({match.home_team_name} vs {match.away_team_name}):**\n\n"
-            f"🏠 Mezbon ({match.home_team_name}): {prob.get('home') or 0}%\n"
-            f"🤝 Durang: {prob.get('draw') or 0}%\n"
-            f"✈️ Mehmon ({match.away_team_name}): {prob.get('away') or 0}%"
-        )
-        await callback.message.answer(text)
-        await callback.answer()
-    finally:
-        db.close()
+        return int(data.rsplit("_", 1)[1])
+    except (IndexError, ValueError):
+        logger.warning("Callback ma'lumotini o'qib bo'lmadi: %s", data)
+        return None
