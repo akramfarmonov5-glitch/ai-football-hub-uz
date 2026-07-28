@@ -65,11 +65,17 @@ class Settings(BaseSettings):
     # boshlanmagan (NS) va tugagan (FT) o'yinlar.
     SPORTSDB_ENABLED: bool = True
     SPORTSDB_API_KEY: str = "3"
-    # 4794=O'zbekiston Superligasi  4480=UEFA Chempionlar ligasi
-    # 4339=Turkiya Super Ligasi     4328=Angliya Premyer-ligasi  4335=La Liga
-    # Diqqat: Turkiya uchun aynan 4339 (4676 — ikkinchi divizion "1 Lig")
-    SPORTSDB_LEAGUES: str = "4794,4480,4339,4328,4335"
+    # 4794=O'zbekiston Superligasi   4480=UEFA Chempionlar ligasi
+    # Yevropa "katta beshligi": 4328=Angliya  4335=Ispaniya  4332=Italiya
+    #                           4331=Germaniya  4334=Fransiya
+    # 4339=Turkiya Super Ligasi
+    # Diqqat: ikkinchi divizionlar bilan adashtirmang —
+    #   4676="Turkish 1 Lig"  4394="Serie B"  4399="2. Bundesliga"  4401="Ligue 2"
+    SPORTSDB_LEAGUES: str = "4794,4480,4328,4335,4332,4331,4334,4339"
     SPORTSDB_POLL_SECONDS: int = 600
+    # So'rovlar orasidagi tanaffus. Bepul tarif daqiqasiga 30 ta so'rov beradi;
+    # har liga alohida so'raladi, shuning uchun tezlikni o'zimiz cheklaymiz.
+    SPORTSDB_REQUEST_INTERVAL_MS: int = 2200
 
     # --- API-Football (ixtiyoriy, pullik; qo'yilsa TheSportsDB o'rniga ishlaydi) ---
     API_FOOTBALL_KEY: str = ""

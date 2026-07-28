@@ -115,15 +115,36 @@ SPORTSDB_POLL_SECONDS=600
 
 Kuzatiladigan ligalar:
 
-| ID | Liga |
-|---|---|
-| 4794 | O'zbekiston Superligasi |
-| 4480 | UEFA Chempionlar ligasi |
-| 4339 | Turkiya Super Ligasi |
-| 4328 | Angliya Premyer-ligasi |
-| 4335 | La Liga |
+| ID | Liga | |
+|---|---|---|
+| 4794 | O'zbekiston Superligasi | |
+| 4480 | UEFA Chempionlar ligasi | |
+| 4328 | Angliya Premyer-ligasi | katta beshlik |
+| 4335 | Ispaniya La Liga | katta beshlik |
+| 4332 | Italiya Seriya A | katta beshlik |
+| 4331 | Germaniya Bundesligasi | katta beshlik |
+| 4334 | Fransiya Ligue 1 | katta beshlik |
+| 4339 | Turkiya Super Ligasi | |
 
-> Turkiya uchun aynan **4339** — `4676` ("Turkish 1 Lig") ikkinchi divizion.
+> **Ikkinchi divizionlar bilan adashtirmang.** Qidiruvda ular yuqorida
+> chiqishi mumkin: `4676`="Turkish 1 Lig", `4394`="Serie B",
+> `4399`="2. Bundesliga", `4401`="Ligue 2".
+
+Mavsumi hali boshlanmagan liga (jadvalda hamma jamoada 0 o'yin) avtomatik
+yashiriladi va mavsum boshlanishi bilan o'zi paydo bo'ladi.
+
+### So'rovlar tezligi
+
+Har liga uchun alohida so'rov ketadi (ligasiz `eventsday.php` bepul kalitda
+atigi 3 ta o'yin qaytaradi, ya'ni so'rovlarni birlashtirib bo'lmaydi):
+8 liga × 3 kun + 8 jadval ≈ 32 so'rov. Bepul tarif daqiqasiga 30 ta beradi,
+shuning uchun:
+
+* `SPORTSDB_REQUEST_INTERVAL_MS=2200` — so'rovlar orasidagi tanaffus
+* turnir jadvali keshlanadi va **fon vazifasi keshni oldindan to'ldiradi** —
+  busiz `/standings/` bir daqiqagacha ochilmasdi
+
+Liga qo'shsangiz `SPORTSDB_POLL_SECONDS` ni ham oshirishni unutmang.
 
 Boshqa liga ID'sini topish:
 

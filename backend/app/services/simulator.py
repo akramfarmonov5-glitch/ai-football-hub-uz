@@ -186,6 +186,10 @@ async def run_simulation_loop(interval_seconds: Optional[int] = None) -> None:
                         updated_matches = await service.fetch_and_update_real_matches()
                     else:
                         updated_matches = await sportsdb.sync_matches()
+                        # Jadval keshini shu yerda to'ldiramiz: aks holda uni
+                        # birinchi tashrif buyuruvchi kutib turishga majbur
+                        # bo'lardi (8 ta liga uchun bir daqiqagacha).
+                        await sportsdb.fetch_standings(force=True)
                 else:
                     updated_matches = await service.advance_matches(allow_real_fetch=False)
 

@@ -14,7 +14,9 @@ Ishlatiladigan endpointlar (ikkalasi ham bepul kalitda tekshirilgan):
   * lookuptable.php — rasmiy turnir jadvali (shu jumladan "forma")
 """
 
+import asyncio
 import logging
+import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -38,6 +40,22 @@ LIVE_STATUSES = {"1H", "2H", "HT", "ET", "BT", "P", "LIVE"}
 # u tez-tez o'zgarmaydi va har so'rovda qayta so'rash isrofgarchilik bo'lardi.
 _season_cache: Dict[int, str] = {}
 
+# So'rovlar orasidagi eng kichik tanaffus. Bepul tarif daqiqasiga 30 ta
+# so'rovga ruxsat beradi; har liga uchun alohida so'rov ketgani sababli
+# 8 ta liga bilan bitta sinxronizatsiya 30 tadan oshib ketishi mumkin edi.
+# (Ligasiz `eventsday.php` bepul kalitda atigi 3 ta o'yin qaytaradi, ya'ni
+# so'rovlarni birlashtirib bo'lmaydi.)
+_last_request_at: float = 0.0
+_request_lock = asyncio.Lock()
+
+# Turnir jadvali keshi. Busiz /standings/ so'rovi 8 ta liga uchun o'nlab
+# so'rov qilardi va tanaffuslar bilan birga bir daqiqagacha cho'zilardi —
+# sahifa umuman ochilmasdi. Jadval faqat o'yin tugagandan keyin o'zgaradi,
+# shuning uchun uni keshlash mutlaqo o'rinli.
+_standings_cache: Optional[List[dict]] = None
+_standings_cached_at: float = 0.0
+_standings_lock = asyncio.Lock()
+
 
 class SportsDBService:
     def __init__(self, db: AsyncSession):
@@ -52,7 +70,22 @@ class SportsDBService:
     def _url(self, path: str) -> str:
         return f"{BASE_URL}/{self.api_key}/{path}"
 
+    async def _throttle(self) -> None:
+        """So'rovlar orasida eng kichik tanaffusni ta'minlaydi."""
+        global _last_request_at
+
+        interval = settings.SPORTSDB_REQUEST_INTERVAL_MS / 1000
+        if interval <= 0:
+            return
+
+        async with _request_lock:
+            kutish = interval - (time.monotonic() - _last_request_at)
+            if kutish > 0:
+                await asyncio.sleep(kutish)
+            _last_request_at = time.monotonic()
+
     async def _get(self, client: httpx.AsyncClient, path: str) -> Dict[str, Any]:
+        await self._throttle()
         try:
             response = await client.get(self._url(path))
             response.raise_for_status()
@@ -184,16 +217,48 @@ class SportsDBService:
     # ------------------------------------------------------------------
     # Turnir jadvali
     # ------------------------------------------------------------------
-    async def fetch_standings(self) -> List[dict]:
-        """Rasmiy turnir jadvali.
+    async def fetch_standings(self, force: bool = False) -> List[dict]:
+        """Rasmiy turnir jadvali (keshlangan).
 
         O'yinlardan hisoblab bo'lmaydi: bepul tarifda faqat bir necha kunlik
         o'yinlar olinadi, mavsum boshidan beri hamma natija yo'q. Shu sababli
         jadval to'g'ridan-to'g'ri manbadan olinadi.
+
+        Har liga uchun ikkitagacha so'rov ketadi va ular orasida tanaffus bor,
+        ya'ni to'liq yangilash bir daqiqagacha cho'zilishi mumkin. Shuning
+        uchun natija keshlanadi va fon vazifasi uni oldindan to'ldirib turadi —
+        foydalanuvchi hech qachon kutmaydi.
         """
+        global _standings_cache, _standings_cached_at
+
         if not self.enabled:
             return []
 
+        ttl = settings.SPORTSDB_POLL_SECONDS
+        if not force and _standings_cache is not None:
+            if time.monotonic() - _standings_cached_at < ttl:
+                return _standings_cache
+
+        async with _standings_lock:
+            # Kutib turgan paytda boshqa so'rov keshni yangilagan bo'lishi mumkin
+            if not force and _standings_cache is not None:
+                if time.monotonic() - _standings_cached_at < ttl:
+                    return _standings_cache
+
+            tables = await self._fetch_standings_uncached()
+
+            # Bo'sh natija keshlanmaydi: tarmoq nosozligi tufayli jadval
+            # butun TTL davomida yo'qolib turmasligi kerak
+            if tables:
+                _standings_cache = tables
+                _standings_cached_at = time.monotonic()
+            elif _standings_cache is not None:
+                logger.warning("Jadval yangilanmadi — eski keshdagi ma'lumot beriladi")
+                return _standings_cache
+
+            return tables
+
+    async def _fetch_standings_uncached(self) -> List[dict]:
         tables: List[dict] = []
         async with httpx.AsyncClient(timeout=20.0) as client:
             for league_id in self.leagues:

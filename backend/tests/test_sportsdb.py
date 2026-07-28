@@ -155,3 +155,89 @@ async def test_ochirilgan_holatda_bosh_royxat(db):
     service = SportsDBService(db)
     assert await service.sync_matches() == []
     assert await service.fetch_standings() == []
+
+
+# ---------------------------------------------------------------------------
+# Tezlik cheklovchisi
+# ---------------------------------------------------------------------------
+
+
+async def test_sorovlar_orasida_tanaffus_boladi(db, monkeypatch):
+    """Bepul tarif daqiqasiga 30 ta so'rov beradi; 8 ta liga bilan bitta
+    sinxronizatsiya undan oshib ketmasligi kerak."""
+    import time as time_module
+
+    from app.services import sportsdb as modul
+
+    monkeypatch.setattr(modul.settings, "SPORTSDB_REQUEST_INTERVAL_MS", 50)
+    monkeypatch.setattr(modul, "_last_request_at", 0.0)
+
+    service = SportsDBService(db)
+    boshlandi = time_module.monotonic()
+    for _ in range(3):
+        await service._throttle()
+    ketgan = time_module.monotonic() - boshlandi
+
+    # Birinchisi darhol o'tadi, keyingi ikkitasi kutadi
+    assert ketgan >= 0.09, f"tanaffus qilinmadi ({ketgan:.3f}s)"
+
+
+async def test_jadval_keshlanadi(db, monkeypatch):
+    """Ikkinchi so'rov manbaga bormasligi kerak — aks holda sahifa
+    har ochilganda o'nlab so'rov ketardi."""
+    from app.services import sportsdb as modul
+
+    monkeypatch.setattr(modul.settings, "SPORTSDB_ENABLED", True)
+    monkeypatch.setattr(modul, "_standings_cache", None)
+    monkeypatch.setattr(modul, "_standings_cached_at", 0.0)
+
+    chaqiruvlar = {"soni": 0}
+
+    async def soxta(self):
+        chaqiruvlar["soni"] += 1
+        return [{"league_id": 4794, "league_name": "Test", "table": []}]
+
+    monkeypatch.setattr(modul.SportsDBService, "_fetch_standings_uncached", soxta)
+
+    service = SportsDBService(db)
+    birinchi = await service.fetch_standings()
+    ikkinchi = await service.fetch_standings()
+
+    assert birinchi == ikkinchi
+    assert chaqiruvlar["soni"] == 1, "ikkinchi marta manbaga borilmasligi kerak"
+
+    # force=True keshni chetlab o'tadi
+    await service.fetch_standings(force=True)
+    assert chaqiruvlar["soni"] == 2
+
+
+async def test_bosh_natija_keshni_buzmaydi(db, monkeypatch):
+    """Tarmoq nosozligida jadval yo'qolib qolmasligi kerak."""
+    from app.services import sportsdb as modul
+
+    monkeypatch.setattr(modul.settings, "SPORTSDB_ENABLED", True)
+    yaxshi = [{"league_id": 4794, "league_name": "Test", "table": []}]
+    monkeypatch.setattr(modul, "_standings_cache", yaxshi)
+    monkeypatch.setattr(modul, "_standings_cached_at", 0.0)  # eskirgan
+
+    async def bosh(self):
+        return []
+
+    monkeypatch.setattr(modul.SportsDBService, "_fetch_standings_uncached", bosh)
+
+    service = SportsDBService(db)
+    assert await service.fetch_standings() == yaxshi, "eski kesh saqlanishi kerak"
+
+
+async def test_tanaffus_nolga_teng_bolsa_kutilmaydi(db, monkeypatch):
+    import time as time_module
+
+    from app.services import sportsdb as modul
+
+    monkeypatch.setattr(modul.settings, "SPORTSDB_REQUEST_INTERVAL_MS", 0)
+
+    service = SportsDBService(db)
+    boshlandi = time_module.monotonic()
+    for _ in range(5):
+        await service._throttle()
+    assert time_module.monotonic() - boshlandi < 0.05
