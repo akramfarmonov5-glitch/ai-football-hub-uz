@@ -43,6 +43,7 @@ export const metadata: Metadata = {
     title: `${SITE_NAME} - Jonli Natijalar va Ekspert Tahlil`,
     description: SITE_DESCRIPTION,
   },
+  manifest: "/manifest.json",
   alternates: { canonical: "/" },
 };
 

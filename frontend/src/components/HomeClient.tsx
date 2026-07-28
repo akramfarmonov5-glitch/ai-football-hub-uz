@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Tv, Sparkles, ArrowUpRight, Zap, TrendingUp, Users } from "lucide-react";
 import { useMatches } from "../lib/useMatches";
 import { getLocalMatches, getLocalNews } from "../lib/mockStore";
+import { LiveTicker } from "./LiveTicker";
 import { SpotlightCard } from "./SpotlightCard";
 import { NewsList } from "./NewsList";
 import { MatchCard } from "./MatchCard";
@@ -39,9 +40,11 @@ export function HomeClient({
   const spotlightMatch = liveMatches[0] || upcomingMatches[0] || finishedMatches[0] || effectiveMatches[0];
 
   return (
-    <div className="space-y-12">
-      {/* ===== Hero Banner ===== */}
-      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0a1628] via-[#0d1f3c] to-[#060913] p-8 md:p-12 animate-fadeInUp">
+    <>
+      <LiveTicker initialMatches={initialMatches} />
+      <div className="space-y-12 mt-6">
+        {/* ===== Hero Banner ===== */}
+        <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#0a1628] via-[#0d1f3c] to-[#060913] p-8 md:p-12 animate-fadeInUp">
         {/* Ambient glow blobs */}
         <div className="absolute top-0 left-0 w-80 h-80 bg-emerald-500/15 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-[120px] translate-x-1/3 translate-y-1/3" />
@@ -175,5 +178,6 @@ export function HomeClient({
         )}
       </div>
     </div>
+    </>
   );
 }

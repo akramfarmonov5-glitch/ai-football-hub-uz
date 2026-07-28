@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Sparkles } from "lucide-react";
 import type { Match } from "../lib/types";
 import { formatTime } from "../lib/time";
+import { MatchCountdown } from "./MatchCountdown";
 
 export function MatchCard({ match, live = false, finished = false }: { match: Match; live?: boolean; finished?: boolean }) {
   const localTime = formatTime(match.match_time);
@@ -103,6 +104,11 @@ export function MatchCard({ match, live = false, finished = false }: { match: Ma
             <div className="h-full bg-cyan-500" style={{ width: `${match.win_probability.away}%` }} />
           </div>
         </div>
+      )}
+
+      {/* Countdown timer for upcoming matches */}
+      {!finished && !live && match.status === "NS" && (
+        <MatchCountdown matchTime={match.match_time} />
       )}
     </Link>
   );

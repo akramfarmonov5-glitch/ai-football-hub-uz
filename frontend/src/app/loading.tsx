@@ -1,9 +1,24 @@
-/** Sahifa ma'lumoti yuklanayotganda ko'rsatiladi (Next.js streaming). */
+import { SkeletonSpotlight, SkeletonNewsList, SkeletonCard } from "../components/Skeletons";
+
 export default function Loading() {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
-      <div className="w-8 h-8 border-4 border-emerald-400 border-t-transparent rounded-full animate-spin" />
-      <p className="text-slate-400 text-sm">Yuklanmoqda...</p>
+    <div className="space-y-12">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <SkeletonSpotlight />
+        <SkeletonNewsList />
+      </div>
+      
+      <div className="space-y-6">
+        <div className="h-6 w-48 bg-white/5 rounded animate-pulse" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      </div>
     </div>
   );
 }
