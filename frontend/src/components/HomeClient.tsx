@@ -51,7 +51,7 @@ export function HomeClient({
           <div className="flex-1 space-y-5 text-center md:text-left">
             <div className="inline-flex items-center space-x-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-4 py-1.5 rounded-full text-xs font-bold">
               <Zap className="w-3.5 h-3.5" />
-              <span>O'zbekistondagi Birinchi AI Futbol Platformasi</span>
+              <span>O'zbekistonning #1 Futbol Platformasi</span>
             </div>
 
             <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight">
@@ -59,7 +59,7 @@ export function HomeClient({
                 Futbolni{" "}
               </span>
               <span className="bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-                Sun'iy Intellekt
+                Professional Tahlil
               </span>
               <br />
               <span className="bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
@@ -68,7 +68,7 @@ export function HomeClient({
             </h1>
 
             <p className="text-sm md:text-base text-slate-400 max-w-lg leading-relaxed">
-              Jonli natijalar, real vaqtdagi statistikalar, AI prognozlari va O'zbekiston
+              Jonli natijalar, real vaqtdagi statistikalar, ekspert prognozlari va O'zbekiston
               futboli yangiliklari — barchasi bir joyda.
             </p>
 

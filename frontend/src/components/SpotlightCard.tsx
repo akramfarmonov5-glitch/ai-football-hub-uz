@@ -87,12 +87,12 @@ export function SpotlightCard({ match }: { match: Match }) {
         </div>
       </div>
 
-      {/* AI Insights & Win Probability Footer */}
+      {/* Ekspert Insights & Win Probability Footer */}
       <div className="relative z-10 pt-6 border-t border-white/5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div className="flex-1 space-y-1.5">
           <div className="flex items-center text-xs font-extrabold text-emerald-400 uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-            <span>AI Tahlili</span>
+            <span>Ekspert Tahlili</span>
           </div>
           <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
             {match.ai_preview || "Tahlil jarayoni boshlanmoqda..."}

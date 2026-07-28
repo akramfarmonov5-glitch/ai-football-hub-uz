@@ -20,12 +20,12 @@ const TELEGRAM_BOT_URL =
 
 const SITE_NAME = "AI Football Hub Uzbekistan";
 const SITE_DESCRIPTION =
-  "O'zbekistondagi birinchi to'liq sun'iy intellekt orqali ishlovchi futbol platformasi. Jonli hisoblar, o'yinoldi va o'yindan keyingi tahlillar.";
+  "O'zbekistonning eng yaxshi futbol platformasi. Jonli hisoblar, o'yinoldi va o'yindan keyingi ekspert tahlillari.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} - Live Natijalar va AI Tahlil`,
+    default: `${SITE_NAME} - Jonli Natijalar va Ekspert Tahlil`,
     template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
@@ -34,13 +34,13 @@ export const metadata: Metadata = {
     type: "website",
     siteName: SITE_NAME,
     locale: "uz_UZ",
-    title: `${SITE_NAME} - Live Natijalar va AI Tahlil`,
+    title: `${SITE_NAME} - Jonli Natijalar va Ekspert Tahlil`,
     description: SITE_DESCRIPTION,
     url: "/",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} - Live Natijalar va AI Tahlil`,
+    title: `${SITE_NAME} - Jonli Natijalar va Ekspert Tahlil`,
     description: SITE_DESCRIPTION,
   },
   alternates: { canonical: "/" },
@@ -133,8 +133,8 @@ export default async function RootLayout({
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 leading-relaxed max-w-xs">
-                  O'zbekistondagi birinchi sun'iy intellekt orqali ishlovchi futbol
-                  platformasi. Jonli natijalar, AI prognozlari va yangiliklar.
+                  O'zbekistonning eng yaxshi futbol
+                  platformasi. Jonli natijalar, ekspert prognozlari va yangiliklar.
                 </p>
               </div>
 
@@ -179,7 +179,7 @@ export default async function RootLayout({
                     rel="noreferrer"
                     className="text-xs text-slate-500 hover:text-sky-400 transition-colors flex items-center space-x-2"
                   >
-                    <Send className="w-3 h-3" /><span>Telegram Bot — AI Football Bot</span>
+                    <Send className="w-3 h-3" /><span>Telegram Bot</span>
                   </a>
                 </div>
               </div>
@@ -194,7 +194,7 @@ export default async function RootLayout({
                 {meta.is_simulated
                   ? "Demo rejimida o'yinlar namoyish uchun avtomatik yaratiladi."
                   : "Natijalar tashqi manbalardan avtomatik yangilanib turadi."}
-                {" "}AI tahlillari sun'iy intellekt tomonidan generatsiya qilinadi.
+                {" "}Tahlillar ekspertlar tomonidan tayyorlanadi.
               </p>
             </div>
           </div>

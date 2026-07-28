@@ -77,7 +77,7 @@ export function MobileMenu() {
                 <span>Telegram Bot</span>
               </a>
               <p className="text-[10px] text-slate-600 text-center">
-                © {new Date().getFullYear()} AI Football Hub UZB
+                © {new Date().getFullYear()} Football Hub UZB
               </p>
             </div>
           </div>

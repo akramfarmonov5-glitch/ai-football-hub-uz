@@ -28,7 +28,7 @@ export function MatchDetailClient({ initialMatch }: { initialMatch: Match }) {
   const [activeTab, setActiveTab] = useState<Tab>("ai");
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "ai", label: "AI Tahlillar & Prognoz", icon: <Sparkles className="w-4 h-4" /> },
+    { id: "ai", label: "Tahlillar & Prognoz", icon: <Sparkles className="w-4 h-4" /> },
     { id: "stats", label: "O'yin Statistikasi", icon: <BarChart2 className="w-4 h-4" /> },
     { id: "lineup", label: "Tarkiblar", icon: <Users className="w-4 h-4" /> },
     { id: "events", label: "O'yin Voqealari", icon: <Clock className="w-4 h-4" /> },
@@ -142,7 +142,7 @@ export function MatchDetailClient({ initialMatch }: { initialMatch: Match }) {
 
               <div className="glass-panel p-6 rounded-2xl space-y-4">
                 <h3 className="text-base font-bold flex items-center text-emerald-400">
-                  <Sparkles className="w-4 h-4 mr-2" /> AI O'yinoldi Preview
+                  <Sparkles className="w-4 h-4 mr-2" /> O'yinoldi Preview
                 </h3>
                 <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-line bg-slate-950/20 p-4 rounded-xl border border-white/5">
                   {match.ai_preview || "Tahlil tayyorlanmoqda..."}
@@ -152,10 +152,10 @@ export function MatchDetailClient({ initialMatch }: { initialMatch: Match }) {
               {match.status === "FT" && (
                 <div className="glass-panel p-6 rounded-2xl space-y-4 border border-emerald-500/20">
                   <h3 className="text-base font-bold flex items-center text-teal-400">
-                    <CheckCircle2 className="w-4 h-4 mr-2" /> Post-Match AI Ekspert Tahlili
+                    <CheckCircle2 className="w-4 h-4 mr-2" /> O'yindan Keyingi Ekspert Tahlili
                   </h3>
                   <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-line bg-slate-950/20 p-4 rounded-xl border border-white/5">
-                    {match.ai_analysis || "O'yin yakunlandi. AI tahlilini yuklash kutilmoqda."}
+                    {match.ai_analysis || "O'yin yakunlandi. Tahlilni yuklash kutilmoqda."}
                   </div>
                 </div>
               )}
