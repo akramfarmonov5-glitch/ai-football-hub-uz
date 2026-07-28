@@ -10,7 +10,7 @@ Foydalanuvchi `favorite_team` ni bot orqali tanlaydi (`/setteam`).
 
 import asyncio
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import httpx
 from sqlalchemy import select
