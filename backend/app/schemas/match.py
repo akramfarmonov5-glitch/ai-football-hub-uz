@@ -3,6 +3,7 @@ from datetime import datetime
 from typing import Optional, List, Dict, Any
 
 from app.core.clock import as_utc
+from app.core.translation import translate_league, translate_team
 
 class MatchBase(BaseModel):
     league_id: int
@@ -16,6 +17,21 @@ class MatchBase(BaseModel):
     score_away: int = 0
     match_time: datetime
     minute: Optional[int] = 0
+
+    @field_validator("league_name")
+    @classmethod
+    def _translate_league_field(cls, value: str) -> str:
+        return translate_league(value)
+
+    @field_validator("home_team_name")
+    @classmethod
+    def _translate_home_team_field(cls, value: str) -> str:
+        return translate_team(value)
+
+    @field_validator("away_team_name")
+    @classmethod
+    def _translate_away_team_field(cls, value: str) -> str:
+        return translate_team(value)
 
     @field_validator("match_time")
     @classmethod
