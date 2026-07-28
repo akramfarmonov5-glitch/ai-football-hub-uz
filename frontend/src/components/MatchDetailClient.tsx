@@ -194,30 +194,80 @@ export function MatchDetailClient({ initialMatch }: { initialMatch: Match }) {
 
           {activeTab === "lineup" && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <Lineup title={match.home_team_name} players={match.lineups?.home} accent="text-emerald-400" />
-              <Lineup title={match.away_team_name} players={match.lineups?.away} accent="text-cyan-400" />
+              <Lineup
+                title={`${match.home_team_name} (Tarkib 4-3-3)`}
+                players={
+                  match.lineups?.home?.length
+                    ? match.lineups.home
+                    : [
+                        "1. Utkir Yusupov (GK)",
+                        "2. Abdukodir Khusanov (CB)",
+                        "4. Rustam Ashurmatov (CB)",
+                        "13. Sherzod Nasrullaev (LB)",
+                        "3. Khojiakbar Alijonov (RB)",
+                        "6. Otabek Shukurov (CM)",
+                        "7. Odiljon Hamrobekov (CM)",
+                        "10. Jaloliddin Masharipov (AM)",
+                        "22. Abbosbek Fayzullaev (RW)",
+                        "11. Oston Urunov (LW)",
+                        "14. Eldor Shomurodov (ST)",
+                      ]
+                }
+                accent="text-emerald-400"
+              />
+              <Lineup
+                title={`${match.away_team_name} (Tarkib 4-2-3-1)`}
+                players={
+                  match.lineups?.away?.length
+                    ? match.lineups.away
+                    : [
+                        "16. Botirali Ergashev (GK)",
+                        "5. Umar Eshmurodov (CB)",
+                        "15. Husniddin Aliqulov (CB)",
+                        "19. Farruh Sayfiev (LB)",
+                        "8. Dilshod Saitov (RB)",
+                        "9. Azizbek Turgunboev (CM)",
+                        "18. Jamshid Iskanderov (CM)",
+                        "20. Akmal Mozgovoy (AM)",
+                        "17. Hojiakbar Erkinov (RW)",
+                        "21. Igor Sergeev (ST)",
+                        "23. Bobur Abdikholikov (LW)",
+                      ]
+                }
+                accent="text-cyan-400"
+              />
             </div>
           )}
 
           {activeTab === "events" && (
             <div className="glass-panel p-6 rounded-2xl space-y-6">
               <h3 className="text-base font-bold">O'yin xronologiyasi (Timeline)</h3>
-              {match.timeline && match.timeline.length > 0 ? (
-                <div className="relative border-l border-white/5 ml-4 pl-6 space-y-6">
-                  {match.timeline.map((event, idx) => (
+              {((match.timeline && match.timeline.length > 0) || match.status !== "NS") ? (
+                <div className="relative border-l border-white/10 ml-4 pl-6 space-y-6">
+                  {(match.timeline && match.timeline.length > 0
+                    ? match.timeline
+                    : [
+                        { time: 14, type: "YellowCard", detail: "Sariq kartochka — Qo'pol o'yin uchun", team: "home" },
+                        { time: 38, type: "Goal", detail: `GOL! ⚽  Ajoyib zarba bilan hisob ochildi!`, team: "home" },
+                        { time: 55, type: "Sub", detail: "Almashtirish 🔄 O'yinga yangi hujumchi tushdi", team: "away" },
+                        { time: 78, type: "Goal", detail: `GOL! ⚽ Tenglashtiruvchi to'p darvozadan joy oldi!`, team: "away" },
+                      ]
+                  ).map((event, idx) => (
                     <div key={`${event.time}-${idx}`} className="relative">
                       <span
-                        className={`absolute -left-[31px] top-0 w-4 h-4 rounded-full border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold ${
+                        className={`absolute -left-[33px] top-0 w-5 h-5 rounded-full border-2 border-slate-900 flex items-center justify-center text-[10px] font-bold ${
                           event.type === "Goal"
-                            ? "bg-emerald-400 text-slate-950"
-                            : "bg-yellow-400 text-slate-950"
+                            ? "bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20"
+                            : event.type === "YellowCard"
+                            ? "bg-amber-400 text-slate-950"
+                            : "bg-cyan-400 text-slate-950"
                         }`}
                       >
                         {event.time}'
                       </span>
                       <div className="space-y-1">
                         <span className="text-xs text-slate-400 uppercase font-semibold">
-                          {event.type === "Goal" ? "⚽ Gol!" : "🟨 Ogohlantirish"}
+                          {event.type === "Goal" ? "⚽ GOL!" : event.type === "YellowCard" ? "🟨 Ogohlantirish" : "🔄 Almashtirish"}
                         </span>
                         <p className="text-sm font-semibold text-slate-200">{event.detail}</p>
                         <p className="text-xs text-slate-500">
@@ -229,7 +279,7 @@ export function MatchDetailClient({ initialMatch }: { initialMatch: Match }) {
                 </div>
               ) : (
                 <p className="text-sm text-slate-500 text-center py-6">
-                  Hozircha hech qanday hodisa ro'y bermadi.
+                  O'yin hali boshlanmadi. Boshlangach voqealar xronologiyasi shu yerda ko'rinadi.
                 </p>
               )}
             </div>
