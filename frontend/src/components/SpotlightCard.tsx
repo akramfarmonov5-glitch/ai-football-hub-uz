@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Sparkles, ChevronRight } from "lucide-react";
 import type { Match } from "../lib/types";
+import { liveLabel } from "../lib/matchStatus";
 
 export function SpotlightCard({ match }: { match: Match }) {
   return (
@@ -21,7 +22,7 @@ export function SpotlightCard({ match }: { match: Match }) {
         {match.status === "LIVE" ? (
           <span className="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-xs font-black bg-rose-500/10 text-rose-400 border border-rose-500/20">
             <span className="w-2 h-2 bg-rose-500 rounded-full live-ping" />
-            <span>JONLI {match.minute}'</span>
+            <span>{liveLabel(match)}</span>
           </span>
         ) : (
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">

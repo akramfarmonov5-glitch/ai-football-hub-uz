@@ -24,9 +24,12 @@ logger = logging.getLogger(__name__)
 
 STADION_RSS_URL = "https://stadion.uz/uz/news/rss"
 
+# DIQQAT: bu o'zbek lotin alifbosi, rus transliteratsiyasi emas.
+# Asosiy farq: Ж -> J (ruschada "Zh"). Ilgari shu xato tufayli
+# "жамоа" -> "zhamoa", "ЖЧ" -> "ZhCh", "режа" -> "rezha" chiqardi.
 CYRILLIC_TO_LATIN_MAP = {
     "А": "A", "а": "a", "Б": "B", "б": "b", "В": "V", "в": "v", "Г": "G", "г": "g",
-    "Д": "D", "д": "d", "Е": "E", "е": "e", "Ё": "Yo", "ё": "yo", "Ж": "Zh", "ж": "zh",
+    "Д": "D", "д": "d", "Е": "E", "е": "e", "Ё": "Yo", "ё": "yo", "Ж": "J", "ж": "j",
     "З": "Z", "з": "z", "И": "I", "и": "i", "Й": "Y", "й": "y", "К": "K", "к": "k",
     "Л": "L", "л": "l", "М": "M", "м": "m", "Н": "N", "н": "n", "О": "O", "о": "o",
     "П": "P", "п": "p", "Р": "R", "р": "r", "С": "S", "с": "s", "Т": "T", "т": "t",
@@ -99,9 +102,12 @@ class RSSFeedService:
             raw_title = html.unescape(title_node.text.strip())
             source_url = link_node.text.strip()
 
-            # Takroriy yangilikni tekshirish (URL yoki sarlavha bo'yicha)
+            # Takroriy yangilikni tekshirish.
+            # Faqat manba havolasi bo'yicha: `raw_title` kirillcha, bazadagi
+            # sarlavhalar esa lotinchada saqlanadi — ularni solishtirish
+            # hech qachon mos kelmasdi va tekshiruv aldamchi edi.
             existing = await self.db.scalar(
-                select(News).where((News.source_url == source_url) | (News.title == raw_title))
+                select(News.id).where(News.source_url == source_url)
             )
             if existing:
                 continue
@@ -131,7 +137,7 @@ class RSSFeedService:
                         f"Format:\nSarlavha: <lotincha sarlavha>\nMazmun: <lotincha mazmun>\nTeglar: #teg1 #teg2\n\n"
                         f"Original Sarlavha: {raw_title}\nOriginal Mazmun: {raw_desc}"
                     )
-                    res = await ai._call_provider(prompt)
+                    res = await ai._generate(prompt)
                     if res:
                         lines = res.strip().split("\n")
                         for line in lines:
@@ -142,8 +148,11 @@ class RSSFeedService:
                             elif line.lower().startswith("teglar:"):
                                 tags_str = line.split(":", 1)[1].strip()
                                 tags = [t.strip() for t in tags_str.split() if t.startswith("#")]
-                except Exception:
-                    pass
+                except Exception as exc:
+                    # Jimgina yutib yubormaymiz: ilgari shu yerda mavjud
+                    # bo'lmagan metod chaqirilgani sababli AI hech qachon
+                    # ishlamagan, log'da esa hech narsa ko'rinmagan.
+                    logger.warning("RSS: AI boyitish ishlamadi: %s", exc)
 
             if not latin_title:
                 latin_title = cyrillic_to_latin(raw_title)

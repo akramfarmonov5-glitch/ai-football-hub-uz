@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Sparkles } from "lucide-react";
 import type { Match } from "../lib/types";
 import { formatTime } from "../lib/time";
+import { liveLabel } from "../lib/matchStatus";
 import { MatchCountdown } from "./MatchCountdown";
 
 export function MatchCard({ match, live = false, finished = false }: { match: Match; live?: boolean; finished?: boolean }) {
@@ -26,7 +27,7 @@ export function MatchCard({ match, live = false, finished = false }: { match: Ma
         {live ? (
           <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500/10 text-rose-400 border border-rose-500/20">
             <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping" />
-            <span>JONLI {match.minute}'</span>
+            <span>{liveLabel(match)}</span>
           </span>
         ) : finished ? (
           <span className="text-[9px] font-bold text-slate-500 bg-white/5 px-2 py-0.5 rounded uppercase tracking-wider">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMatches } from "../lib/useMatches";
 import { getLocalMatches } from "../lib/mockStore";
 import type { Match } from "../lib/types";
+import { minuteLabel } from "../lib/matchStatus";
 
 export function LiveTicker({ initialMatches }: { initialMatches: Match[] }) {
   const { matches } = useMatches({ initialMatches, initialNews: [] });
@@ -44,9 +45,9 @@ export function LiveTicker({ initialMatches }: { initialMatches: Match[] }) {
                     {m.score_home} - {m.score_away}
                   </span>
                   <span className="text-slate-400">{m.away_team_name}</span>
-                  {m.status === "LIVE" && (
+                  {m.status === "LIVE" && minuteLabel(m) && (
                     <span className="text-[9px] text-rose-400 font-bold bg-rose-500/10 px-1.5 py-0.5 rounded">
-                      {m.minute}'
+                      {minuteLabel(m)}
                     </span>
                   )}
                   {m.status === "FT" && (

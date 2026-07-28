@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { getMatch } from "../../../lib/server-api";
 import { formatDateTime } from "../../../lib/time";
+import { liveLabel } from "../../../lib/matchStatus";
 import { MatchDetailClient } from "../../../components/MatchDetailClient";
 
 type Props = { params: Promise<{ id: string }> };
@@ -25,7 +26,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     match.status === "NS" ? "" : ` ${match.score_home}:${match.score_away}`;
   const statusText =
     match.status === "LIVE"
-      ? `JONLI ${match.minute}'`
+      ? liveLabel(match)
       : match.status === "FT"
         ? "Yakunlandi"
         : formatDateTime(match.match_time);

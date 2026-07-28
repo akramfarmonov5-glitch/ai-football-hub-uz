@@ -15,6 +15,7 @@ import {
 import { useLiveMatch } from "../lib/useMatches";
 import { formatDate, formatTime } from "../lib/time";
 import { teamSlug } from "../lib/teamSlug";
+import { minuteLabel } from "../lib/matchStatus";
 import type { Match } from "../lib/types";
 
 type Tab = "ai" | "lineup" | "stats" | "events";
@@ -67,7 +68,7 @@ export function MatchDetailClient({ initialMatch }: { initialMatch: Match }) {
               {match.status === "LIVE" ? (
                 <span className="inline-flex items-center space-x-1.5 px-3 py-0.5 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/25">
                   <span className="w-2 h-2 bg-rose-500 rounded-full animate-ping" />
-                  <span>{match.minute}' Daqiqa</span>
+                  <span>{minuteLabel(match) ? `${minuteLabel(match)} Daqiqa` : "Jonli"}</span>
                 </span>
               ) : match.status === "FT" ? (
                 <span className="text-xs bg-slate-500/10 text-slate-400 border border-slate-500/20 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
