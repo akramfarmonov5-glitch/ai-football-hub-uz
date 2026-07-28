@@ -33,6 +33,71 @@ def _xg(match: Match) -> str:
     return f"{xg.get('home', 0)} - {xg.get('away', 0)}"
 
 
+# O'zbekcha nomlar lug'ati
+LEAGUE_TRANSLATIONS = {
+    "Uzbekistan Super League": "O'zbekiston Superligasi 🇺🇿",
+    "UEFA Champions League": "UEFA Chempionlar Ligasi 🇪🇺",
+    "English Premier League": "Angliya Premyer-ligasi 🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+    "Premier League": "Angliya Premyer-ligasi 🏴󠁧󠁢󠁥󠁮󠁧󠁿",
+    "La Liga": "Ispaniya La Ligasi 🇪🇸",
+    "Spanish La Liga": "Ispaniya La Ligasi 🇪🇸",
+    "Serie A": "Italiya A Seriyasi 🇮🇹",
+    "Italian Serie A": "Italiya A Seriyasi 🇮🇹",
+    "Bundesliga": "Germaniya Bundesligasi 🇩🇪",
+    "German Bundesliga": "Germaniya Bundesligasi 🇩🇪",
+    "Ligue 1": "Fransiya 1-Ligasi 🇫🇷",
+    "French Ligue 1": "Fransiya 1-Ligasi 🇫🇷",
+    "Turkish Super Lig": "Turkiya Superligasi 🇹🇷",
+}
+
+TEAM_TRANSLATIONS = {
+    "Neftchi Fergana": "Neftchi Farg'ona",
+    "Surkhon Termez": "Surxon Termiz",
+    "Qizilqum Zarafshon": "Qizilqum Zarafshon",
+    "Pakhtakor Tashkent": "Paxtakor Toshkent",
+    "Bunyodkor Tashkent": "Bunyodkor Toshkent",
+    "Lokomotiv Tashkent": "Lokomotiv Toshkent",
+    "Dinamo Samarkand": "Dinamo Samarqand",
+    "Nasaf": "Nasaf Qarshi",
+    "Navbahor Namangan": "Navbahor Namangan",
+    "Xorazm Urganch": "Xorazm Urganch",
+    "Andijon": "Andijon",
+    "Metallurg Bekabad": "Metallurg Bekobod",
+    "Sogdiana Jizzakh": "So'gdiyona Jizzax",
+    "Olympic Tashkent": "Olimpik Toshkent",
+    "AGMK Almalyk": "OKMK Olmaliq",
+    "Heart of Midlothian": "Xarts",
+    "Sturm Graz": "Shturm Grats",
+    "Dinamo Zagreb": "Dinamo Zagreb",
+    "Thun": "Tun",
+    "Real Madrid": "Real Madrid",
+    "Barcelona": "Barselona",
+    "Manchester City": "Manchester Siti",
+    "Manchester United": "Manchester Yunayted",
+    "Arsenal": "Arsenal",
+    "Liverpool": "Liverpul",
+    "Chelsea": "Chelsi",
+    "Bayern Munich": "Bavariya",
+    "Borussia Dortmund": "Borussiya Dortmund",
+    "Paris Saint Germain": "PSJ",
+    "Juventus": "Yuventus",
+    "Inter": "Inter",
+    "AC Milan": "Milan",
+}
+
+
+def translate_league(name: str) -> str:
+    if not name:
+        return ""
+    return LEAGUE_TRANSLATIONS.get(name.strip(), name.strip())
+
+
+def translate_team(name: str) -> str:
+    if not name:
+        return ""
+    return TEAM_TRANSLATIONS.get(name.strip(), name.strip())
+
+
 @router.message(F.text == "Live o'yinlar ⚽")
 async def show_live_matches(message: types.Message):
     async with AsyncSessionLocal() as db:
@@ -46,9 +111,12 @@ async def show_live_matches(message: types.Message):
         return
 
     for m in live_matches:
+        league = translate_league(m.league_name)
+        home = translate_team(m.home_team_name)
+        away = translate_team(m.away_team_name)
         text = (
-            f"🏆 *{m.league_name}* | {m.minute}-daqiqa\n"
-            f"⚔️ *{m.home_team_name} {m.score_home} - {m.score_away} {m.away_team_name}*\n"
+            f"🏆 *{league}* | {m.minute}-daqiqa\n"
+            f"⚔️ *{home} {m.score_home} - {m.score_away} {away}*\n"
             f"📈 xG: {_xg(m)}\n"
         )
         await message.answer(
@@ -89,8 +157,8 @@ async def show_today_matches(message: types.Message):
         else:
             status_text = f"Boshlanish vaqti: {_local_time(m.match_time)}"
 
-        lines.append(f"🏆 {m.league_name}")
-        lines.append(f"⚽ {m.home_team_name} vs {m.away_team_name}")
+        lines.append(f"🏆 {translate_league(m.league_name)}")
+        lines.append(f"⚽ {translate_team(m.home_team_name)} vs {translate_team(m.away_team_name)}")
         lines.append(f"📌 {status_text}")
         if m.status in ("LIVE", "FT"):
             lines.append(f"🔢 Hisob: {m.score_home} - {m.score_away}")
@@ -145,13 +213,17 @@ async def show_ai_predictions(message: types.Message):
         if len(preview) > 700:
             preview = preview[:700].rsplit(" ", 1)[0] + "..."
 
+        home = translate_team(m.home_team_name)
+        away = translate_team(m.away_team_name)
+        league = translate_league(m.league_name)
+
         text = (
-            f"🔮 *AI Prognozi: {m.home_team_name} - {m.away_team_name}*\n"
-            f"🏆 Liga: {m.league_name}\n\n"
+            f"🔮 *AI Prognozi: {home} - {away}*\n"
+            f"🏆 Liga: {league}\n\n"
             f"📊 G'alaba qozonish ehtimollari:\n"
-            f"🏠 Mezbon: {prob.get('home', 0)}%\n"
+            f"🏠 Mezbon ({home}): {prob.get('home', 0)}%\n"
             f"🤝 Durang: {prob.get('draw', 0)}%\n"
-            f"✈️ Mehmon: {prob.get('away', 0)}%\n\n"
+            f"✈️ Mehmon ({away}): {prob.get('away', 0)}%\n\n"
             f"ℹ️ _AI Tahlil:_ {preview}"
         )
         await message.answer(text, parse_mode=ParseMode.MARKDOWN)
@@ -175,8 +247,11 @@ async def callback_ai_analysis(callback: types.CallbackQuery):
     if len(analysis) > 3500:
         analysis = analysis[:3500].rsplit(" ", 1)[0] + "..."
 
+    home = translate_team(match.home_team_name)
+    away = translate_team(match.away_team_name)
+
     await callback.message.answer(
-        f"🧠 *AI Tahlili ({match.home_team_name} vs {match.away_team_name}):*\n\n{analysis}",
+        f"🧠 *AI Tahlili ({home} vs {away}):*\n\n{analysis}",
         parse_mode=ParseMode.MARKDOWN,
     )
     await callback.answer()
@@ -197,11 +272,14 @@ async def callback_ai_prob(callback: types.CallbackQuery):
         return
 
     prob = match.win_probability or {"home": 33, "draw": 34, "away": 33}
+    home = translate_team(match.home_team_name)
+    away = translate_team(match.away_team_name)
+
     text = (
-        f"📊 *G'alaba ehtimoli ({match.home_team_name} vs {match.away_team_name}):*\n\n"
-        f"🏠 {match.home_team_name}: {prob.get('home', 0)}%\n"
+        f"📊 *G'alaba ehtimoli ({home} vs {away}):*\n\n"
+        f"🏠 {home}: {prob.get('home', 0)}%\n"
         f"🤝 Durang: {prob.get('draw', 0)}%\n"
-        f"✈️ {match.away_team_name}: {prob.get('away', 0)}%"
+        f"✈️ {away}: {prob.get('away', 0)}%"
     )
     await callback.message.answer(text, parse_mode=ParseMode.MARKDOWN)
     await callback.answer()
