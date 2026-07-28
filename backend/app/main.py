@@ -59,16 +59,20 @@ async def lifespan(app: FastAPI):
             "backend/.env faylida uni belgilang."
         )
 
+    from app.services.rss_service import run_rss_loop
+
     simulator_task = asyncio.create_task(run_simulation_loop())
     bot_task = asyncio.create_task(start_telegram_bot())
+    rss_task = asyncio.create_task(run_rss_loop())
 
     yield
 
     # --- Shutdown ---
     simulator_task.cancel()
     bot_task.cancel()
+    rss_task.cancel()
     try:
-        await asyncio.gather(simulator_task, bot_task, return_exceptions=True)
+        await asyncio.gather(simulator_task, bot_task, rss_task, return_exceptions=True)
     except Exception:
         pass
 
