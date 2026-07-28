@@ -25,7 +25,7 @@ export function MatchCard({ match, live = false, finished = false }: { match: Ma
         {live ? (
           <span className="inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500/10 text-rose-400 border border-rose-500/20">
             <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-ping" />
-            <span>LIVE {match.minute}'</span>
+            <span>JONLI {match.minute}'</span>
           </span>
         ) : finished ? (
           <span className="text-[9px] font-bold text-slate-500 bg-white/5 px-2 py-0.5 rounded uppercase tracking-wider">
@@ -94,8 +94,8 @@ export function MatchCard({ match, live = false, finished = false }: { match: Ma
       {match.win_probability && (
         <div className="mt-4 pt-3 border-t border-white/5 space-y-1">
           <div className="flex items-center justify-between text-[9px] text-slate-500 font-bold uppercase tracking-wider">
-            <span className="flex items-center"><Sparkles className="w-3 h-3 text-emerald-400 mr-1" /> Win Prob (AI)</span>
-            <span>{match.win_probability.home}% - {match.win_probability.draw}% - {match.win_probability.away}%</span>
+            <span className="flex items-center"><Sparkles className="w-3 h-3 text-emerald-400 mr-1" /> G'alaba ehtimoli (AI)</span>
+            <span>🏠 {match.win_probability.home}% · 🤝 {match.win_probability.draw}% · ✈️ {match.win_probability.away}%</span>
           </div>
           <div className="w-full h-1 rounded-full overflow-hidden flex bg-white/5">
             <div className="h-full bg-emerald-500" style={{ width: `${match.win_probability.home}%` }} />

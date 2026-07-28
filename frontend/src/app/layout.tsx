@@ -2,19 +2,12 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Tv, Newspaper, Table2, Send } from "lucide-react";
 import { getMeta } from "../lib/server-api";
 import { SearchModal } from "../components/SearchModal";
 import { FavoriteTeamPicker } from "../components/FavoriteTeamPicker";
+import { MobileMenu } from "../components/MobileMenu";
 
-/**
- * Shrift build paytida yuklab olinadi va o'z domenimizdan beriladi.
- * Ilgari u Google serveridan `<link>` orqali olinardi: har bir tashrifda
- * tashqi so'rov, sekinroq yuklanish va matn sakrashi (CLS) bo'lardi.
- *
- * Outfit — variable shrift, shuning uchun `weight` ko'rsatilmaydi: barcha
- * qalinliklar (300-800) bitta fayldan keladi.
- */
 const outfit = Outfit({
   subsets: ["latin", "latin-ext"],
   display: "swap",
@@ -30,11 +23,9 @@ const SITE_DESCRIPTION =
   "O'zbekistondagi birinchi to'liq sun'iy intellekt orqali ishlovchi futbol platformasi. Jonli hisoblar, o'yinoldi va o'yindan keyingi tahlillar.";
 
 export const metadata: Metadata = {
-  // Nisbiy URL'lar (og:url, canonical) shu manzilga nisbatan to'ldiriladi
   metadataBase: new URL(SITE_URL),
   title: {
     default: `${SITE_NAME} - Live Natijalar va AI Tahlil`,
-    // Ichki sahifalar o'z sarlavhasini beradi, oxiriga sayt nomi qo'shiladi
     template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
@@ -52,9 +43,6 @@ export const metadata: Metadata = {
     title: `${SITE_NAME} - Live Natijalar va AI Tahlil`,
     description: SITE_DESCRIPTION,
   },
-  // `robots` ataylab belgilanmagan: teg bo'lmasa indeksatsiya baribir ruxsat
-  // etilgan. Aksincha, uni yozib qo'ysak, Next.js topilmagan sahifalarga
-  // avtomatik qo'yadigan `noindex` bilan qarama-qarshi teg paydo bo'lardi.
   alternates: { canonical: "/" },
 };
 
@@ -63,15 +51,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Bitta joyda so'raladi va banner bilan footer ikkalasida ishlatiladi —
-  // ular bir-biriga zid gapirmasligi kerak (banner "demo" desa-yu, footer
-  // "haqiqiy" desa, chalkashlik chiqardi).
   const meta = await getMeta();
 
   return (
     <html lang="uz" className={`${outfit.variable} h-full dark`}>
       <body className="min-h-full flex flex-col bg-[#060913] text-slate-100 font-sans selection:bg-cyan-500 selection:text-black">
-        {/* Ma'lumot manbai haqiqiy bo'lmasa — har bir sahifada ogohlantiramiz */}
         {meta.is_simulated && (
           <div
             role="status"
@@ -103,7 +87,7 @@ export default async function RootLayout({
               </Link>
               <nav className="hidden md:flex space-x-6 text-sm font-medium text-slate-300">
                 <Link href="/#match-center" className="hover:text-emerald-400 transition-colors">
-                  Match Markazi
+                  O'yin Markazi
                 </Link>
                 <Link href="/standings" className="hover:text-emerald-400 transition-colors">
                   Turnir jadvali
@@ -114,17 +98,18 @@ export default async function RootLayout({
               </nav>
             </div>
 
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2.5">
               <SearchModal />
               <FavoriteTeamPicker />
               <a
                 href={TELEGRAM_BOT_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold px-4 py-2 rounded-full transition-colors shadow-lg shadow-sky-500/10"
+                className="hidden sm:inline-flex bg-sky-500 hover:bg-sky-600 text-white text-xs font-semibold px-4 py-2 rounded-full transition-colors shadow-lg shadow-sky-500/10"
               >
                 Telegram Bot 🤖
               </a>
+              <MobileMenu />
             </div>
           </div>
         </header>
@@ -133,21 +118,85 @@ export default async function RootLayout({
           {children}
         </main>
 
-        <footer className="border-t border-white/5 py-8 mt-12 bg-[#04060d]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500">
-            <p>© {new Date().getFullYear()} {SITE_NAME}. Barcha huquqlar himoyalangan.</p>
-            <p className="mt-2 text-slate-600">
-              {meta.is_simulated ? (
-                <>
-                  Demo rejimida o'yinlar, hisoblar va turnir jadvali namoyish
-                  uchun avtomatik yaratiladi — ular haqiqiy uchrashuvlarni aks
-                  ettirmaydi.{" "}
-                </>
-              ) : (
-                <>Natijalar tashqi manbalardan avtomatik yangilanib turadi. </>
-              )}
-              AI tahlillari sun'iy intellekt tomonidan generatsiya qilinadi.
-            </p>
+        {/* ===== Professional Footer ===== */}
+        <footer className="border-t border-white/5 bg-[#04060d]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
+              {/* Logo + ta'rif */}
+              <div className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-lg font-extrabold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                    AI FOOTBALL HUB
+                  </span>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-full font-bold">
+                    UZB
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500 leading-relaxed max-w-xs">
+                  O'zbekistondagi birinchi sun'iy intellekt orqali ishlovchi futbol
+                  platformasi. Jonli natijalar, AI prognozlari va yangiliklar.
+                </p>
+              </div>
+
+              {/* Tezkor havolalar */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">
+                  Tezkor Havolalar
+                </h4>
+                <nav className="flex flex-col space-y-2.5">
+                  <Link href="/" className="text-xs text-slate-500 hover:text-emerald-400 transition-colors flex items-center space-x-2">
+                    <Tv className="w-3 h-3" /><span>Bosh sahifa</span>
+                  </Link>
+                  <Link href="/#match-center" className="text-xs text-slate-500 hover:text-emerald-400 transition-colors flex items-center space-x-2">
+                    <Tv className="w-3 h-3" /><span>O'yin Markazi</span>
+                  </Link>
+                  <Link href="/standings" className="text-xs text-slate-500 hover:text-emerald-400 transition-colors flex items-center space-x-2">
+                    <Table2 className="w-3 h-3" /><span>Turnir jadvali</span>
+                  </Link>
+                  <Link href="/#news-section" className="text-xs text-slate-500 hover:text-emerald-400 transition-colors flex items-center space-x-2">
+                    <Newspaper className="w-3 h-3" /><span>Yangiliklar</span>
+                  </Link>
+                </nav>
+              </div>
+
+              {/* Ijtimoiy tarmoqlar */}
+              <div className="space-y-4">
+                <h4 className="text-xs font-extrabold text-slate-300 uppercase tracking-wider">
+                  Biz bilan bog'laning
+                </h4>
+                <div className="flex flex-col space-y-2.5">
+                  <a
+                    href="https://t.me/aifootball_uz"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-slate-500 hover:text-sky-400 transition-colors flex items-center space-x-2"
+                  >
+                    <Send className="w-3 h-3" /><span>Telegram Kanal — @aifootball_uz</span>
+                  </a>
+                  <a
+                    href={TELEGRAM_BOT_URL}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-slate-500 hover:text-sky-400 transition-colors flex items-center space-x-2"
+                  >
+                    <Send className="w-3 h-3" /><span>Telegram Bot — AI Football Bot</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Pastki qator */}
+            <div className="mt-10 pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-[10px] text-slate-600">
+                © {new Date().getFullYear()} {SITE_NAME}. Barcha huquqlar himoyalangan.
+              </p>
+              <p className="text-[10px] text-slate-600 text-center">
+                {meta.is_simulated
+                  ? "Demo rejimida o'yinlar namoyish uchun avtomatik yaratiladi."
+                  : "Natijalar tashqi manbalardan avtomatik yangilanib turadi."}
+                {" "}AI tahlillari sun'iy intellekt tomonidan generatsiya qilinadi.
+              </p>
+            </div>
           </div>
         </footer>
       </body>
