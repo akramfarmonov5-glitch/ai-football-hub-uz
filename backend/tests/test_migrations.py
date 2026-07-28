@@ -47,6 +47,12 @@ def test_bosh_bazada_barcha_jadval_yaratiladi():
     assert {"matches", "news", "users", "alembic_version"} <= tables
 
 
+# Alembicdan oldin mavjud bo'lgan jadvallar. Yangi jadvallar (masalan `teams`)
+# faqat migratsiyalar orqali paydo bo'ladi, shuning uchun "eski baza"da ular
+# bo'lishi mumkin emas — taqlid aynan shu ro'yxat bilan qilinadi.
+LEGACY_TABLES = ("matches", "news", "users")
+
+
 def test_eski_baza_stamp_qilinadi():
     """Alembicdan oldin yaratilgan bazada `upgrade` xato bermasligi kerak.
 
@@ -54,16 +60,25 @@ def test_eski_baza_stamp_qilinadi():
     upgrade "table already exists" bilan yiqilardi.
     """
     _clean_database()
-    Base.metadata.create_all(engine)  # Alembicdan oldingi holatni taqlid qilamiz
+    # Faqat o'sha davrdagi jadvallarni yaratamiz
+    Base.metadata.create_all(
+        engine, tables=[Base.metadata.tables[nom] for nom in LEGACY_TABLES]
+    )
 
     with engine.connect() as connection:
-        assert "alembic_version" not in inspect(connection).get_table_names()
+        jadvallar = set(inspect(connection).get_table_names())
+        assert "alembic_version" not in jadvallar
+        assert "teams" not in jadvallar, "eski bazada yangi jadval bo'lmasligi kerak"
 
     run_migrations()  # xato bermasligi kerak
 
     with engine.connect() as connection:
         version = connection.execute(text("SELECT version_num FROM alembic_version")).scalar()
+        jadvallar = set(inspect(connection).get_table_names())
+
     assert version, "baza revizya bilan belgilanmadi"
+    # Keyingi migratsiyalar qo'llanib, yangi jadval ham paydo bo'lishi kerak
+    assert "teams" in jadvallar, "stamp'dan keyingi migratsiyalar qo'llanmadi"
 
 
 def test_qayta_ishga_tushirish_xavfsiz():

@@ -190,6 +190,8 @@ async def run_simulation_loop(interval_seconds: Optional[int] = None) -> None:
                         # birinchi tashrif buyuruvchi kutib turishga majbur
                         # bo'lardi (8 ta liga uchun bir daqiqagacha).
                         await sportsdb.fetch_standings(force=True)
+                        # Profili yo'q jamoalarni bosqichma-bosqich to'ldiramiz
+                        await sportsdb.sync_team_profiles()
                 else:
                     updated_matches = await service.advance_matches(allow_real_fetch=False)
 

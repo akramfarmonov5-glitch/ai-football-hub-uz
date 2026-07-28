@@ -19,6 +19,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
+from urllib.parse import quote
 
 import httpx
 from sqlalchemy import select
@@ -27,6 +28,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.clock import to_naive_utc, utcnow
 from app.core.config import settings
 from app.models.match import Match
+from app.models.team import Team
+from app.services.teams import team_slug
 
 logger = logging.getLogger(__name__)
 
@@ -213,6 +216,108 @@ class SportsDBService:
         if updated:
             logger.info("TheSportsDB: %d ta o'yin yangilandi", len(updated))
         return updated
+
+    # ------------------------------------------------------------------
+    # Jamoa profillari
+    # ------------------------------------------------------------------
+    async def sync_team_profiles(self, limit: int = 8) -> List[Team]:
+        """O'yinlarda uchragan, lekin profili hali yo'q jamoalarni yuklaydi.
+
+        `lookup_all_teams.php` bepul kalitda liga ID'sini e'tiborsiz qoldiradi
+        (qaysi liga so'ralmasin, bir xil 24 ta ingliz jamoasini qaytaradi —
+        tekshirilgan), shuning uchun har jamoa nomi bo'yicha alohida
+        qidiriladi. Profil deyarli o'zgarmaydi, shuning uchun bir marta
+        olinadi va bazada qoladi.
+
+        Har qadamda bir nechtasi olinadi — so'rovlar limitini yemasligi uchun.
+        """
+        if not self.enabled:
+            return []
+
+        mavjud = set((await self.db.execute(select(Team.name))).scalars().all())
+
+        # O'yinlardagi barcha jamoa nomlari (liga ID'si bilan birga)
+        rows = await self.db.execute(
+            select(Match.home_team_name, Match.league_id).union(
+                select(Match.away_team_name, Match.league_id)
+            )
+        )
+        kerakli = [(nom, liga) for nom, liga in rows.all() if nom and nom not in mavjud]
+        if not kerakli:
+            return []
+
+        yaratilgan: List[Team] = []
+        async with httpx.AsyncClient(timeout=20.0) as client:
+            for nom, league_id in kerakli[:limit]:
+                team = await self._fetch_team(client, nom, league_id)
+                if team is None:
+                    continue
+                # Bir jamoa ikki liga ostida uchrashi mumkin (masalan
+                # Chempionlar ligasi + milliy chempionat) — ID bo'yicha tekshiramiz
+                if await self.db.get(Team, team.id):
+                    continue
+                self.db.add(team)
+                yaratilgan.append(team)
+
+        if yaratilgan:
+            await self.db.commit()
+            logger.info("%d ta jamoa profili yuklandi", len(yaratilgan))
+        return yaratilgan
+
+    async def _fetch_team(
+        self, client: httpx.AsyncClient, name: str, league_id: Optional[int]
+    ) -> Optional[Team]:
+        data = await self._get(client, f"searchteams.php?t={quote(name)}")
+        results = data.get("teams") or []
+        if not results:
+            logger.info("Jamoa topilmadi: %s", name)
+            return None
+
+        # Bir nomda bir nechta klub bo'lishi mumkin — ligasi mos kelganini olamiz
+        chosen = results[0]
+        if league_id:
+            for item in results:
+                try:
+                    if int(item.get("idLeague") or 0) == league_id:
+                        chosen = item
+                        break
+                except (TypeError, ValueError):
+                    continue
+
+        try:
+            team_id = int(chosen["idTeam"])
+        except (KeyError, TypeError, ValueError):
+            return None
+
+        def son(key: str) -> Optional[int]:
+            try:
+                qiymat = int(chosen.get(key) or 0)
+                return qiymat or None
+            except (TypeError, ValueError):
+                return None
+
+        # Liga jamoaning O'Z chempionatidan olinadi, o'yin ligasidan emas:
+        # Chempionlar ligasidagi o'yin uchun `league_id` 4480 bo'lardi-yu,
+        # `league_name` "Danish Superliga" bo'lib qolardi. Turnir jadvalidagi
+        # o'rni ham jamoaning milliy chempionatida qidirilishi kerak.
+        own_league = son("idLeague") or league_id
+
+        return Team(
+            id=team_id,
+            # Slug o'yinlardagi nomdan yasaladi — havolalar shu nom bilan quriladi
+            slug=team_slug(name),
+            name=name,
+            league_id=own_league,
+            league_name=chosen.get("strLeague"),
+            badge=chosen.get("strBadge"),
+            stadium=chosen.get("strStadium"),
+            stadium_capacity=son("intStadiumCapacity"),
+            location=chosen.get("strLocation"),
+            country=chosen.get("strCountry"),
+            founded=son("intFormedYear"),
+            website=chosen.get("strWebsite"),
+            description=chosen.get("strDescriptionEN"),
+        )
 
     # ------------------------------------------------------------------
     # Turnir jadvali

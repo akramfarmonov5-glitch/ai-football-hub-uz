@@ -1,6 +1,13 @@
 import { unstable_rethrow } from "next/navigation";
 
-import type { LeagueStandings, Match, NewsItem, SiteMeta } from "./types";
+import type {
+  LeagueStandings,
+  Match,
+  NewsItem,
+  SiteMeta,
+  TeamDetail,
+  TeamSummary,
+} from "./types";
 
 /**
  * Server komponentlar uchun ma'lumot olish.
@@ -69,6 +76,14 @@ export async function getNewsArticle(slug: string): Promise<NewsItem | null> {
 
 export async function getStandings(): Promise<LeagueStandings[]> {
   return getJson<LeagueStandings[]>("/standings/", []);
+}
+
+export async function getTeams(): Promise<TeamSummary[]> {
+  return getJson<TeamSummary[]>("/teams/", []);
+}
+
+export async function getTeam(slug: string): Promise<TeamDetail | null> {
+  return getJson<TeamDetail | null>(`/teams/${encodeURIComponent(slug)}`, null);
 }
 
 /**

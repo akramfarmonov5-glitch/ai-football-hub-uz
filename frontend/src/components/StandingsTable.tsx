@@ -1,4 +1,6 @@
 import Image from "next/image";
+import Link from "next/link";
+import { teamSlug } from "../lib/teamSlug";
 import type { FormResult, LeagueStandings } from "../lib/types";
 
 /**
@@ -50,7 +52,10 @@ export function StandingsTable({ league }: { league: LeagueStandings }) {
                   </span>
                 </td>
                 <td className="py-3 px-2">
-                  <div className="flex items-center gap-2">
+                  <Link
+                    href={`/teams/${teamSlug(row.team)}`}
+                    className="flex items-center gap-2 group"
+                  >
                     <span className="w-6 h-6 shrink-0 bg-white/5 border border-white/5 rounded flex items-center justify-center p-0.5">
                       {row.logo ? (
                         <Image
@@ -67,8 +72,10 @@ export function StandingsTable({ league }: { league: LeagueStandings }) {
                         </span>
                       )}
                     </span>
-                    <span className="font-bold text-slate-200 whitespace-nowrap">{row.team}</span>
-                  </div>
+                    <span className="font-bold text-slate-200 whitespace-nowrap group-hover:text-emerald-400 transition-colors">
+                      {row.team}
+                    </span>
+                  </Link>
                 </td>
                 <td className="py-3 px-2 text-center text-slate-400">{row.played}</td>
                 <td className="py-3 px-2 text-center text-slate-400 hidden sm:table-cell">{row.won}</td>

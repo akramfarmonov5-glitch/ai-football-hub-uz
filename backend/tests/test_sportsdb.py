@@ -151,6 +151,59 @@ def test_ochirilgan_bolsa_ishlamaydi(db, monkeypatch):
     assert service.enabled is False
 
 
+async def test_jamoa_ozining_ligasi_saqlanadi(db, monkeypatch):
+    """Chempionlar ligasidagi o'yin uchun jamoaning MILLIY ligasi saqlanishi
+    kerak — aks holda turnir jadvalidagi o'rni noto'g'ri ligada qidirilardi."""
+    import httpx
+
+    from app.services import sportsdb as modul
+
+    monkeypatch.setattr(modul.settings, "SPORTSDB_ENABLED", True)
+
+    async def soxta_get(self, client, path):
+        return {
+            "teams": [
+                {
+                    "idTeam": "133612",
+                    "strTeam": "AGF Aarhus",
+                    "idLeague": "4340",  # Daniya Superligasi
+                    "strLeague": "Danish Superliga",
+                    "intFormedYear": "1880",
+                }
+            ]
+        }
+
+    monkeypatch.setattr(modul.SportsDBService, "_get", soxta_get)
+
+    service = SportsDBService(db)
+    async with httpx.AsyncClient() as client:
+        # O'yin Chempionlar ligasida (4480) bo'lgan
+        team = await service._fetch_team(client, "AGF Aarhus", 4480)
+
+    assert team is not None
+    assert team.league_id == 4340, "jamoaning o'z ligasi saqlanishi kerak"
+    assert team.league_name == "Danish Superliga"
+
+
+async def test_ligasi_nomalum_bolsa_oyin_ligasi(db, monkeypatch):
+    import httpx
+
+    from app.services import sportsdb as modul
+
+    monkeypatch.setattr(modul.settings, "SPORTSDB_ENABLED", True)
+
+    async def soxta_get(self, client, path):
+        return {"teams": [{"idTeam": "1", "strTeam": "X"}]}
+
+    monkeypatch.setattr(modul.SportsDBService, "_get", soxta_get)
+
+    service = SportsDBService(db)
+    async with httpx.AsyncClient() as client:
+        team = await service._fetch_team(client, "X", 4794)
+
+    assert team.league_id == 4794, "manbada liga yo'q bo'lsa o'yin ligasi olinadi"
+
+
 async def test_ochirilgan_holatda_bosh_royxat(db):
     service = SportsDBService(db)
     assert await service.sync_matches() == []

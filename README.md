@@ -186,6 +186,32 @@ marta yozilgan maqola bilan qotib qolardi. Takrorlanmasligi uchun faqat
 oxirgi maqoladan **keyin** tugagan o'yin haqida yoziladi, va maqolalar
 `NEWS_MIN_INTERVAL_HOURS` (3 soat) dan tez-tez chiqmaydi.
 
+## Jamoa sahifalari
+
+`/teams/{slug}` — profil, o'yinlar va turnir jadvalidagi o'rni.
+`GET /api/v1/teams/` va `/api/v1/teams/{slug}`.
+
+**Slug ikki joyda hisoblanadi va aynan bir xil bo'lishi shart:**
+`app/services/teams.py:team_slug` (backend) va `lib/teamSlug.ts` (frontend).
+Havolalar frontendda quriladi, sahifa esa backendda shu slug bo'yicha
+topiladi — biri o'zgarsa havolalar 404 beradi. Diakritik belgilar lotinga
+o'giriladi: `Fenerbahçe` → `fenerbahce`, `Górnik` → `gornik`.
+
+**Profil bosqichma-bosqich yuklanadi.** `lookup_all_teams.php` bepul kalitda
+liga ID'sini e'tiborsiz qoldiradi (qaysi liga so'ralmasin, bir xil 24 ta
+ingliz jamoasini qaytaradi — tekshirilgan), shuning uchun har jamoa nomi
+bo'yicha alohida qidiriladi va natija `teams` jadvalida saqlanadi.
+Har qadamda bir nechtasi olinadi.
+
+Shu sababli **sahifa profilsiz ham ishlaydi**: turnir jadvali va o'yin
+kartalari barcha jamoalarni havola qiladi, profili hali yuklanmagani
+bosilsa 404 chiqmasligi kerak. Bunday holatda sahifa o'yinlardan quriladi,
+profil keyinroq qo'shiladi.
+
+Jamoaning ligasi **o'z chempionatidan** olinadi, o'yin ligasidan emas:
+Chempionlar ligasidagi o'yin uchun aks holda "Danish Superliga" nomi bilan
+`league_id=4480` juftligi chiqib qolardi.
+
 ## Turnir jadvali
 
 `/standings` sahifasi va `GET /api/v1/standings/` endpointi.

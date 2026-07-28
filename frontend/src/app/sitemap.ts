@@ -1,11 +1,15 @@
 import type { MetadataRoute } from "next";
-import { getMatches, getNews } from "../lib/server-api";
+import { getMatches, getNews, getTeams } from "../lib/server-api";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
 /** Qidiruv tizimlari uchun sayt xaritasi: /sitemap.xml */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [matches, news] = await Promise.all([getMatches(), getNews()]);
+  const [matches, news, teams] = await Promise.all([
+    getMatches(),
+    getNews(),
+    getTeams(),
+  ]);
 
   return [
     {
@@ -20,6 +24,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily",
       priority: 0.9,
     },
+    ...teams.map((team) => ({
+      url: `${SITE_URL}/teams/${team.slug}`,
+      lastModified: new Date(),
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    })),
     ...news.map((item) => ({
       url: `${SITE_URL}/news/${item.slug}`,
       lastModified: new Date(item.created_at),

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useLiveMatch } from "../lib/useMatches";
 import { formatDate, formatTime } from "../lib/time";
+import { teamSlug } from "../lib/teamSlug";
 import type { Match } from "../lib/types";
 
 type Tab = "ai" | "lineup" | "stats" | "events";
@@ -261,11 +262,14 @@ function TeamCrest({
   accent: "emerald" | "cyan";
 }) {
   return (
-    <div className="flex flex-col items-center space-y-3 flex-1">
+    <Link
+      href={`/teams/${teamSlug(name)}`}
+      className="flex flex-col items-center space-y-3 flex-1 group"
+    >
       <div
         className={`w-16 h-16 md:w-20 md:h-20 ${
           accent === "emerald" ? "bg-emerald-500/5" : "bg-cyan-500/5"
-        } rounded-full border border-white/5 flex items-center justify-center`}
+        } rounded-full border border-white/5 flex items-center justify-center transition-transform group-hover:scale-105`}
       >
         {logo ? (
           <Image
@@ -286,8 +290,10 @@ function TeamCrest({
           </span>
         )}
       </div>
-      <h2 className="text-base md:text-xl font-bold">{name}</h2>
-    </div>
+      <h2 className="text-base md:text-xl font-bold group-hover:text-emerald-400 transition-colors">
+        {name}
+      </h2>
+    </Link>
   );
 }
 

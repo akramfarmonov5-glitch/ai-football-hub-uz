@@ -66,6 +66,27 @@ export interface LeagueStandings {
   table: TeamStanding[];
 }
 
+export interface TeamSummary {
+  slug: string;
+  name: string;
+  badge: string | null;
+  league_name: string | null;
+}
+
+export interface TeamDetail extends TeamSummary {
+  league_id: number | null;
+  stadium: string | null;
+  stadium_capacity: number | null;
+  location: string | null;
+  country: string | null;
+  founded: number | null;
+  website: string | null;
+  description: string | null;
+  recent_matches: Match[];
+  upcoming_matches: Match[];
+  standing: TeamStanding | null;
+}
+
 export interface NewsItem {
   id: number;
   title: string;
