@@ -19,11 +19,17 @@ const BASE_URL =
   "http://localhost:8000";
 
 /** Backend ishlamasa sayt ishdan chiqmasligi kerak — null/bo'sh ro'yxat qaytaramiz. */
-async function getJson<T>(path: string, fallback: T): Promise<T> {
+async function getJson<T>(
+  path: string,
+  fallback: T,
+  /** Sekundlarda. Berilmasa — umuman keshlanmaydi (jonli ma'lumot uchun). */
+  revalidate?: number
+): Promise<T> {
   try {
     const res = await fetch(`${BASE_URL}/api/v1${path}`, {
-      // Jonli ma'lumot: keshlanmaydi
-      cache: "no-store",
+      ...(revalidate === undefined
+        ? { cache: "no-store" as const }
+        : { next: { revalidate } }),
       signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return fallback;
@@ -68,11 +74,19 @@ export async function getStandings(): Promise<LeagueStandings[]> {
 /**
  * Ma'lumot manbai. Backend javob bermasa ham simulyatsiya deb hisoblaymiz —
  * ogohlantirishni yashirgandan ko'ra ortiqcha ko'rsatgan xavfsizroq.
+ *
+ * Bu qiymat faqat sozlama o'zgarganda (ya'ni server qayta ishga tushganda)
+ * o'zgaradi, lekin root layoutda har bir sahifa uchun so'raladi — shuning
+ * uchun qisqa muddatga keshlanadi.
  */
 export async function getMeta(): Promise<SiteMeta> {
-  return getJson<SiteMeta>("/meta/", {
-    data_source: "simulation",
-    is_simulated: true,
-    ai_enabled: false,
-  });
+  return getJson<SiteMeta>(
+    "/meta/",
+    {
+      data_source: "simulation",
+      is_simulated: true,
+      ai_enabled: false,
+    },
+    60
+  );
 }

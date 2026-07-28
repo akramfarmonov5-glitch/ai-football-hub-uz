@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Outfit } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
-import { SimulationNotice } from "../components/SimulationNotice";
+import { AlertTriangle } from "lucide-react";
+import { getMeta } from "../lib/server-api";
 
 /**
  * Shrift build paytida yuklab olinadi va o'z domenimizdan beriladi.
@@ -55,16 +56,37 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Bitta joyda so'raladi va banner bilan footer ikkalasida ishlatiladi —
+  // ular bir-biriga zid gapirmasligi kerak (banner "demo" desa-yu, footer
+  // "haqiqiy" desa, chalkashlik chiqardi).
+  const meta = await getMeta();
+
   return (
     <html lang="uz" className={`${outfit.variable} h-full dark`}>
       <body className="min-h-full flex flex-col bg-[#060913] text-slate-100 font-sans selection:bg-cyan-500 selection:text-black">
         {/* Ma'lumot manbai haqiqiy bo'lmasa — har bir sahifada ogohlantiramiz */}
-        <SimulationNotice />
+        {meta.is_simulated && (
+          <div
+            role="status"
+            className="w-full bg-amber-500/10 border-b border-amber-500/25 text-amber-300"
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2.5 flex items-start gap-2 text-xs">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-px" />
+              <p className="leading-relaxed">
+                <strong className="font-bold">Demo rejimi.</strong> Bu
+                sahifadagi o'yinlar, hisoblar va turnir jadvali{" "}
+                <strong>haqiqiy emas</strong> — ular namoyish uchun avtomatik
+                yaratilgan. Haqiqiy natijalar uchun API-Football kaliti
+                ulanishi kerak.
+              </p>
+            </div>
+          </div>
+        )}
 
         <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#060913]/80 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -111,8 +133,15 @@ export default function RootLayout({
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500">
             <p>© {new Date().getFullYear()} {SITE_NAME}. Barcha huquqlar himoyalangan.</p>
             <p className="mt-2 text-slate-600">
-              Demo rejimida o'yinlar, hisoblar va turnir jadvali namoyish uchun
-              avtomatik yaratiladi — ular haqiqiy uchrashuvlarni aks ettirmaydi.
+              {meta.is_simulated ? (
+                <>
+                  Demo rejimida o'yinlar, hisoblar va turnir jadvali namoyish
+                  uchun avtomatik yaratiladi — ular haqiqiy uchrashuvlarni aks
+                  ettirmaydi.{" "}
+                </>
+              ) : (
+                <>Natijalar tashqi manbalardan avtomatik yangilanib turadi. </>
+              )}
               AI tahlillari sun'iy intellekt tomonidan generatsiya qilinadi.
             </p>
           </div>

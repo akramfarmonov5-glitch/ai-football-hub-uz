@@ -108,9 +108,27 @@ O'zbekiston auditoriyasi uchun mo'ljallangan saytga to'g'ri kelmaydi.
 
 ```bash
 SPORTSDB_ENABLED=true
-SPORTSDB_API_KEY="3"                  # "3" — ochiq sinov kaliti; o'zingiznikini oling
-SPORTSDB_LEAGUES="4794,4328,4335"     # O'zbekiston, EPL, La Liga
+SPORTSDB_API_KEY="3"      # "3" — ochiq sinov kaliti; o'zingiznikini oling
+SPORTSDB_LEAGUES="4794,4480,4339,4328,4335"
 SPORTSDB_POLL_SECONDS=600
+```
+
+Kuzatiladigan ligalar:
+
+| ID | Liga |
+|---|---|
+| 4794 | O'zbekiston Superligasi |
+| 4480 | UEFA Chempionlar ligasi |
+| 4339 | Turkiya Super Ligasi |
+| 4328 | Angliya Premyer-ligasi |
+| 4335 | La Liga |
+
+> Turkiya uchun aynan **4339** — `4676` ("Turkish 1 Lig") ikkinchi divizion.
+
+Boshqa liga ID'sini topish:
+
+```bash
+curl "https://www.thesportsdb.com/api/v1/json/3/search_all_leagues.php?c=Germany&s=Soccer"
 ```
 
 Cheklov: bepul tarifda **jonli daqiqama-daqiqa hisob yo'q** (u $9/oy
