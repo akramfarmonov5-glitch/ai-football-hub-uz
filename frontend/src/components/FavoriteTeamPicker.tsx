@@ -11,6 +11,7 @@ export function FavoriteTeamPicker() {
 
   useEffect(() => {
     const saved = localStorage.getItem("favorite_team");
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (saved) setFavorite(saved);
 
     const loadTeams = async () => {

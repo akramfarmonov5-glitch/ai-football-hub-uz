@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Search, X, Trophy, Shield, Newspaper, Calendar } from "lucide-react";
+import { Search, X, Trophy, Shield, Newspaper } from "lucide-react";
 import type { Match, NewsItem, TeamSummary } from "../lib/types";
-import { teamSlug } from "../lib/teamSlug";
 
 export function SearchModal() {
   const [isOpen, setIsOpen] = useState(false);

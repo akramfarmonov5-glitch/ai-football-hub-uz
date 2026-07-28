@@ -27,6 +27,7 @@ export function NewsComments({ newsSlug }: { newsSlug: string }) {
     const saved = localStorage.getItem(key);
     if (saved) {
       try {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setComments(JSON.parse(saved));
       } catch (err) {
         console.error(err);
