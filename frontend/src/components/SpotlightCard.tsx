@@ -15,7 +15,7 @@ export function SpotlightCard({ match }: { match: Match }) {
       {/* Header info */}
       <div className="relative z-10 flex items-center justify-between">
         <span className="text-xs font-extrabold tracking-wider bg-white/5 border border-white/5 text-slate-300 px-3 py-1 rounded-full uppercase">
-          {match.league_name} • SPOTLIGHT MATCH
+          {match.league_name} • MARKAZIY O'YIN
         </span>
 
         {match.status === "LIVE" ? (
@@ -92,7 +92,7 @@ export function SpotlightCard({ match }: { match: Match }) {
         <div className="flex-1 space-y-1.5">
           <div className="flex items-center text-xs font-extrabold text-emerald-400 uppercase tracking-wider">
             <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-            <span>AI Insight</span>
+            <span>AI Tahlili</span>
           </div>
           <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
             {match.ai_preview || "Tahlil jarayoni boshlanmoqda..."}
@@ -118,7 +118,7 @@ export function SpotlightCard({ match }: { match: Match }) {
           href={`/matches/${match.id}`}
           className="bg-white text-slate-950 font-extrabold px-5 py-2.5 rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center space-x-1.5 text-xs shadow-md shadow-white/5"
         >
-          <span>Live Center</span>
+          <span>O'yin Markazi</span>
           <ChevronRight className="w-4 h-4" />
         </Link>
       </div>
