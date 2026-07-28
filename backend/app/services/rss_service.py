@@ -47,10 +47,13 @@ def cyrillic_to_latin(text: str) -> str:
     return "".join(result)
 
 
+import html
+
 def clean_html(text: str) -> str:
-    """HTML teglarini tozalaydi."""
+    """HTML teglari va HTML obyektlarini (&laquo;, &raquo;, &quot;) tozalaydi."""
     if not text:
         return ""
+    text = html.unescape(text)
     clean = re.sub(r"<[^>]+>", " ", text)
     clean = re.sub(r"\s+", " ", clean).strip()
     return clean
@@ -93,7 +96,7 @@ class RSSFeedService:
             if title_node is None or not title_node.text or link_node is None or not link_node.text:
                 continue
 
-            raw_title = title_node.text.strip()
+            raw_title = html.unescape(title_node.text.strip())
             source_url = link_node.text.strip()
 
             # Takroriy yangilikni tekshirish (URL yoki sarlavha bo'yicha)
@@ -170,9 +173,9 @@ class RSSFeedService:
             added_count += 1
             logger.info("RSS'dan yangi maqola saqlandi: %s", latin_title)
 
-            # Telegram kanalga avtopost qilish
+            # Telegram kanalga avtopost qilish (rasm va matn bilan)
             try:
-                await notify_news_item(latin_title, latin_summary, slug)
+                await notify_news_item(latin_title, latin_summary, slug, image_url=image_url)
             except Exception:
                 pass
 

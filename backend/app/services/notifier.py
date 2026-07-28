@@ -128,8 +128,28 @@ async def notify_goals(
             logger.exception("Gol xabarnomasida kutilmagan xato")
 
 
-async def notify_news_item(news_title: str, news_summary: str, news_slug: str) -> bool:
-    """Yangi AI yangilikni Telegram kanalga chop etadi."""
+async def _send_photo(
+    client: httpx.AsyncClient, chat_id: str, photo: str, caption: str
+) -> bool:
+    """Telegram bot orqali kanalga rasm va matn yuboradi."""
+    payload = {
+        "chat_id": chat_id,
+        "photo": photo,
+        "caption": caption,
+        "parse_mode": "Markdown",
+    }
+    try:
+        response = await client.post("sendPhoto", json=payload)
+        return response.status_code == 200 and response.json().get("ok", False)
+    except Exception as exc:
+        logger.warning("Telegram sendPhoto xatosi: %s", exc)
+        return False
+
+
+async def notify_news_item(
+    news_title: str, news_summary: str, news_slug: str, image_url: Optional[str] = None
+) -> bool:
+    """Yangi AI yangilikni Telegram kanalga rasm va matn bilan chop etadi."""
     if not settings.TELEGRAM_BOT_TOKEN or not settings.TELEGRAM_CHANNEL_ID:
         return False
 
@@ -140,6 +160,12 @@ async def notify_news_item(news_title: str, news_summary: str, news_slug: str) -
     )
 
     async with httpx.AsyncClient(base_url=TELEGRAM_API, timeout=10.0) as client:
+        if image_url and image_url.startswith("http"):
+            success = await _send_photo(client, settings.TELEGRAM_CHANNEL_ID, image_url, text)
+            if success:
+                logger.info("Yangi maqola rasm bilan Telegram kanalga yuborildi: %s", news_title)
+                return True
+
         success = await _send_message(client, settings.TELEGRAM_CHANNEL_ID, text)
         if success:
             logger.info("Yangi maqola Telegram kanalga yuborildi: %s", news_title)
