@@ -43,6 +43,7 @@ class Settings(BaseSettings):
 
     # --- Telegram bot ---
     TELEGRAM_BOT_TOKEN: str = ""
+    TELEGRAM_CHANNEL_ID: str = ""
     # Botdagi havolalar shu manzilga ishora qiladi
     PUBLIC_SITE_URL: str = "http://localhost:3000"
 

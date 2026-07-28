@@ -126,3 +126,22 @@ async def notify_goals(
         except Exception:
             # Xabarnoma nosozligi simulyatsiyani to'xtatmasligi kerak
             logger.exception("Gol xabarnomasida kutilmagan xato")
+
+
+async def notify_news_item(news_title: str, news_summary: str, news_slug: str) -> bool:
+    """Yangi AI yangilikni Telegram kanalga chop etadi."""
+    if not settings.TELEGRAM_BOT_TOKEN or not settings.TELEGRAM_CHANNEL_ID:
+        return False
+
+    text = (
+        f"📰 *{_escape_markdown(news_title)}*\n\n"
+        f"{_escape_markdown(news_summary or '')}\n\n"
+        f"🔗 [Batafsil o'qish]({settings.PUBLIC_SITE_URL}/news/{news_slug})"
+    )
+
+    async with httpx.AsyncClient(base_url=TELEGRAM_API, timeout=10.0) as client:
+        success = await _send_message(client, settings.TELEGRAM_CHANNEL_ID, text)
+        if success:
+            logger.info("Yangi maqola Telegram kanalga yuborildi: %s", news_title)
+        return success
+

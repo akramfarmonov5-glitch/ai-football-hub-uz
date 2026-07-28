@@ -15,7 +15,7 @@ from app.models.news import News
 from app.models.team import Team
 from app.services.ai_engine import get_ai_engine
 from app.services.football_api import FootballAPIService
-from app.services.notifier import notify_goals
+from app.services.notifier import notify_goals, notify_news_item
 from app.services.sportsdb import SportsDBService
 from app.services.websocket import manager
 
@@ -183,6 +183,10 @@ async def generate_match_report(db: AsyncSession) -> Optional[News]:
     db.add(news)
     await db.commit()
     logger.info("Yangi maqola yozildi: %s", news.title)
+    try:
+        await notify_news_item(news.title, news.summary or "", news.slug)
+    except Exception:
+        logger.exception("Telegram kanalga yangilik yuborishda xato")
     return news
 
 

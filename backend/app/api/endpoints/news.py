@@ -75,4 +75,12 @@ async def create_news_article(news_in: NewsCreate, db: AsyncSession = Depends(ge
     db.add(db_news)
     await db.commit()
     await db.refresh(db_news)
+
+    if db_news.is_published:
+        try:
+            from app.services.notifier import notify_news_item
+            await notify_news_item(db_news.title, db_news.summary or "", db_news.slug)
+        except Exception:
+            pass
+
     return db_news
