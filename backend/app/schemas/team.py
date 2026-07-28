@@ -21,7 +21,10 @@ class TeamDetail(TeamSummary):
     country: Optional[str] = None
     founded: Optional[int] = None
     website: Optional[str] = None
+    # Tayyor tavsif: tarjima bo'lsa o'zbekcha, aks holda asl matn
     description: Optional[str] = None
+    # Rost bo'lsa yuqoridagi matn AI tarjimasi
+    description_translated: bool = False
 
     recent_matches: List[MatchResponse] = []
     upcoming_matches: List[MatchResponse] = []

@@ -81,7 +81,10 @@ export interface TeamDetail extends TeamSummary {
   country: string | null;
   founded: number | null;
   website: string | null;
+  /** Tayyor tavsif: tarjima bo'lsa o'zbekcha, aks holda asl matn */
   description: string | null;
+  /** Rost bo'lsa yuqoridagi matn AI tarjimasi */
+  description_translated: boolean;
   recent_matches: Match[];
   upcoming_matches: Match[];
   standing: TeamStanding | null;

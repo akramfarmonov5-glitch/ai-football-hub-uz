@@ -3,7 +3,15 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { cache } from "react";
-import { ArrowLeft, MapPin, Users, Calendar, Globe, Trophy } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+  Users,
+  Calendar,
+  Globe,
+  Trophy,
+  Sparkles,
+} from "lucide-react";
 
 import { getTeam } from "../../../lib/server-api";
 import { formatDate, formatTime } from "../../../lib/time";
@@ -86,6 +94,12 @@ export default async function TeamPage({ params }: Props) {
               <p className="text-sm text-slate-400 leading-relaxed whitespace-pre-line">
                 {team.description}
               </p>
+              {team.description_translated && (
+                <p className="text-[11px] text-slate-600 flex items-center gap-1.5 pt-1">
+                  <Sparkles className="w-3 h-3" />
+                  Matn sun'iy intellekt tomonidan o'zbek tiliga o'girilgan
+                </p>
+              )}
             </section>
           )}
         </div>

@@ -78,6 +78,9 @@ async def get_team_page(db: AsyncSession, slug: str) -> Optional[dict]:
 
     if team is not None:
         name = team.name
+        # Tarjima tayyor bo'lsa o'sha, aks holda asl matn. Tanlovni backend
+        # qiladi — frontend ikkita maydonni solishtirib o'tirmasin.
+        tarjima_bor = bool(team.description_uz)
         profil = {
             "badge": team.badge,
             "league_id": team.league_id,
@@ -88,7 +91,8 @@ async def get_team_page(db: AsyncSession, slug: str) -> Optional[dict]:
             "country": team.country,
             "founded": team.founded,
             "website": team.website,
-            "description": team.description,
+            "description": team.description_uz or team.description,
+            "description_translated": tarjima_bor,
         }
     else:
         topilgan = await _resolve_name_from_matches(db, slug)
@@ -106,6 +110,7 @@ async def get_team_page(db: AsyncSession, slug: str) -> Optional[dict]:
             "founded": None,
             "website": None,
             "description": None,
+            "description_translated": False,
         }
 
     matches = await _team_matches(db, name)

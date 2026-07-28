@@ -212,6 +212,13 @@ Jamoaning ligasi **o'z chempionatidan** olinadi, o'yin ligasidan emas:
 Chempionlar ligasidagi o'yin uchun aks holda "Danish Superliga" nomi bilan
 `league_id=4480` juftligi chiqib qolardi.
 
+**Tavsiflar o'zbekchaga o'giriladi.** Manba ularni inglizcha beradi; fon
+vazifasi Gemini orqali tarjima qiladi va `teams.description_uz` ga yozadi.
+Asl matn o'chirilmaydi — tarjima tayyor bo'lguncha (yoki AI ishlamasa)
+sayt o'shani ko'rsatadi. API tayyor matnni `description` da qaytaradi va
+`description_translated` bilan uning tarjima ekanini bildiradi; sahifada
+bu ochiq yoziladi.
+
 ## Turnir jadvali
 
 `/standings` sahifasi va `GET /api/v1/standings/` endpointi.

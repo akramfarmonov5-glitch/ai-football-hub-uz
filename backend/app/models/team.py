@@ -28,4 +28,8 @@ class Team(Base):
     country = Column(String, nullable=True)
     founded = Column(Integer, nullable=True)
     website = Column(String, nullable=True)
+    # Manbadagi asl tavsif (odatda inglizcha)
     description = Column(Text, nullable=True)
+    # AI tarjimasi. Asl matn ham saqlanadi: tarjima tayyor bo'lguncha zaxira
+    # bo'lib turadi va kelajakda qayta tarjima qilish imkonini beradi.
+    description_uz = Column(Text, nullable=True)

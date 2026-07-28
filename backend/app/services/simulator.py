@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.models.match import Match
 from app.models.news import News
+from app.models.team import Team
 from app.services.ai_engine import get_ai_engine
 from app.services.football_api import FootballAPIService
 from app.services.notifier import notify_goals
@@ -24,6 +25,9 @@ AI_PREVIEWS_PER_TICK = 2
 
 # Yangiliklar bundan tez-tez yozilmaydi (AI so'rovlarini cheklash uchun)
 NEWS_MIN_INTERVAL_HOURS = 3
+
+# Har qadamda nechta jamoa tavsifi o'zbekchaga o'giriladi
+TRANSLATIONS_PER_TICK = 2
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +93,41 @@ async def generate_missing_previews(db: AsyncSession) -> None:
         db.add(match)
     await db.commit()
     logger.info("%d ta o'yinga AI tahlili tayyorlandi", len(pending))
+
+
+async def translate_team_descriptions(db: AsyncSession) -> int:
+    """Jamoa tavsiflarini o'zbekchaga o'giradi.
+
+    Manba tavsiflarni inglizcha beradi. Har qadamda bir nechtasi tarjima
+    qilinadi — bir vaqtda o'nlab AI so'rovi ketmasligi uchun. Asl matn
+    o'chirilmaydi: tarjima tayyor bo'lguncha (yoki AI ishlamasa) sayt
+    o'shani ko'rsatib turadi.
+    """
+    result = await db.execute(
+        select(Team)
+        .where(Team.description.isnot(None), Team.description_uz.is_(None))
+        .limit(TRANSLATIONS_PER_TICK)
+    )
+    pending = list(result.scalars().all())
+    if not pending:
+        return 0
+
+    ai_service = get_ai_engine()
+    tarjima_qilindi = 0
+
+    for team in pending:
+        matn = await ai_service.translate_to_uzbek(team.description, team.name)
+        if not matn:
+            # AI ishlamadi — keyingi qadamda qayta urinamiz, asl matn qoladi
+            continue
+        team.description_uz = matn
+        db.add(team)
+        tarjima_qilindi += 1
+
+    if tarjima_qilindi:
+        await db.commit()
+        logger.info("%d ta jamoa tavsifi o'zbekchaga o'girildi", tarjima_qilindi)
+    return tarjima_qilindi
 
 
 async def generate_match_report(db: AsyncSession) -> Optional[News]:
@@ -174,24 +213,30 @@ async def run_simulation_loop(interval_seconds: Optional[int] = None) -> None:
             try:
                 service = FootballAPIService(db)
                 sportsdb = SportsDBService(db)
+                # So'rov vaqti kelmagan qadamda ham aniqlangan bo'lishi kerak
+                updated_matches: list = []
 
                 if service.has_api_key or sportsdb.enabled:
-                    # Haqiqiy manba: so'rovlar oralig'iga rioya qilamiz
+                    # Haqiqiy manba: so'rovlar oralig'iga rioya qilamiz.
+                    # Vaqt kelmagan bo'lsa tashqi so'rov qilinmaydi, lekin
+                    # quyidagi AI vazifalari baribir bajariladi — ular
+                    # tashqi API limitiga bog'liq emas.
                     now = time.monotonic()
-                    if last_real_fetch is not None and now - last_real_fetch < poll_seconds:
-                        continue
-                    last_real_fetch = now
-
-                    if service.has_api_key:
-                        updated_matches = await service.fetch_and_update_real_matches()
-                    else:
-                        updated_matches = await sportsdb.sync_matches()
-                        # Jadval keshini shu yerda to'ldiramiz: aks holda uni
-                        # birinchi tashrif buyuruvchi kutib turishga majbur
-                        # bo'lardi (8 ta liga uchun bir daqiqagacha).
-                        await sportsdb.fetch_standings(force=True)
-                        # Profili yo'q jamoalarni bosqichma-bosqich to'ldiramiz
-                        await sportsdb.sync_team_profiles()
+                    vaqt_keldi = (
+                        last_real_fetch is None or now - last_real_fetch >= poll_seconds
+                    )
+                    if vaqt_keldi:
+                        last_real_fetch = now
+                        if service.has_api_key:
+                            updated_matches = await service.fetch_and_update_real_matches()
+                        else:
+                            updated_matches = await sportsdb.sync_matches()
+                            # Jadval keshini shu yerda to'ldiramiz: aks holda uni
+                            # birinchi tashrif buyuruvchi kutib turishga majbur
+                            # bo'lardi (8 ta liga uchun bir daqiqagacha).
+                            await sportsdb.fetch_standings(force=True)
+                            # Profili yo'q jamoalarni bosqichma-bosqich to'ldiramiz
+                            await sportsdb.sync_team_profiles()
                 else:
                     updated_matches = await service.advance_matches(allow_real_fetch=False)
 
@@ -202,8 +247,12 @@ async def run_simulation_loop(interval_seconds: Optional[int] = None) -> None:
                 if service.new_goals:
                     await notify_goals(db, service.new_goals)
 
+                # AI vazifalari har qadamda: ularning o'z cheklovlari bor
+                # (tayyorlanmaganlar soni, vaqt oralig'i) va tashqi futbol
+                # API'sining so'rov limitiga aloqasi yo'q.
                 await generate_missing_previews(db)
                 await generate_match_report(db)
+                await translate_team_descriptions(db)
             except asyncio.CancelledError:
                 raise
             except Exception:

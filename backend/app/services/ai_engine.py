@@ -200,6 +200,32 @@ class AIEngineService:
             f"Ikkala jamoa murabbiylari ham o'yindan so'ng taktik o'zgarishlar haqida to'xtalib o'tishlari kutilmoqda."
         )
 
+    async def translate_to_uzbek(self, text: str, subject: str = "") -> str:
+        """Matnni o'zbek tiliga o'giradi. Muvaffaqiyatsiz bo'lsa bo'sh satr.
+
+        Jamoa tavsiflari manbadan inglizcha keladi. Bo'sh satr qaytsa
+        chaqiruvchi asl matnni ko'rsatadi — foydalanuvchi hech bo'lmasa
+        biror ma'lumot ko'radi.
+        """
+        if not text or not text.strip():
+            return ""
+
+        kontekst = f" ({subject} futbol klubi haqida)" if subject else ""
+        prompt = f"""
+        Quyidagi matnni{kontekst} o'zbek tiliga tarjima qiling.
+
+        Talablar:
+        - Faqat tarjimani qaytaring, hech qanday izoh yoki muqaddima yozmang
+        - Futbol atamalarini o'zbek tilida qabul qilingan shaklda ishlating
+        - Klub va shahar nomlarini o'zbek tilida odatda qanday yozilsa shunday yozing
+        - Xatboshilar tuzilishini saqlang
+        - Matnni qisqartirmang va o'zingizdan ma'lumot qo'shmang
+
+        Matn:
+        {text}
+        """
+        return await self._generate(prompt)
+
     async def generate_news_article(self, topic: str) -> Dict[str, Any]:
         prompt = f"""
         Futbol olamidagi quyidagi mavzu bo'yicha qisqa, SEO-optimizatsiya qilingan sport yangiligi yozib bering (o'zbek tilida).
