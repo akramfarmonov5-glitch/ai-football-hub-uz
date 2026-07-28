@@ -24,11 +24,14 @@ export function NewsList({ news }: { news: NewsItem[] }) {
           >
             <div className="space-y-2">
               <div className="flex flex-wrap gap-1.5">
-                {item.tags?.map((t) => (
-                  <span key={t} className="text-[9px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/10 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
-                    #{t}
-                  </span>
-                ))}
+                {item.tags?.map((t) => {
+                  const cleanTag = t.replace(/^#+/, "");
+                  return (
+                    <span key={t} className="text-[9px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/10 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                      #{cleanTag}
+                    </span>
+                  );
+                })}
               </div>
               <h3 className="text-sm font-bold line-clamp-2 hover:text-cyan-300 transition-colors">
                 {item.title}

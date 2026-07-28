@@ -16,6 +16,8 @@ import type { Match, NewsItem } from "../lib/types";
  * shu sababli sahifa HTML'i to'liq kontent bilan keladi (Google va Telegram
  * uni ko'ra oladi), keyin WebSocket jonli yangilanishlarni ustiga qo'yadi.
  */
+import { getLocalMatches, getLocalNews } from "../lib/mockStore";
+
 export function HomeClient({
   initialMatches,
   initialNews,
@@ -26,18 +28,21 @@ export function HomeClient({
   const { matches, news, isOffline } = useMatches({ initialMatches, initialNews });
   const [selectedLeague, setSelectedLeague] = useState<string>("All");
 
-  const leagues = ["All", ...Array.from(new Set(matches.map((m) => m.league_name)))];
+  const effectiveMatches = matches.length > 0 ? matches : getLocalMatches();
+  const effectiveNews = news.length > 0 ? news : getLocalNews();
+
+  const leagues = ["All", ...Array.from(new Set(effectiveMatches.map((m) => m.league_name)))];
   const filteredMatches =
     selectedLeague === "All"
-      ? matches
-      : matches.filter((m) => m.league_name === selectedLeague);
+      ? effectiveMatches
+      : effectiveMatches.filter((m) => m.league_name === selectedLeague);
 
   const liveMatches = filteredMatches.filter((m) => m.status === "LIVE");
   const upcomingMatches = filteredMatches.filter((m) => m.status === "NS");
   const finishedMatches = filteredMatches.filter((m) => m.status === "FT");
 
   // Spotlight uchun: avval jonli, keyin bo'lajak, oxirida tugagan o'yin
-  const spotlightMatch = liveMatches[0] || upcomingMatches[0] || finishedMatches[0];
+  const spotlightMatch = liveMatches[0] || upcomingMatches[0] || finishedMatches[0] || effectiveMatches[0];
 
   return (
     <div className="space-y-12">
@@ -57,7 +62,7 @@ export function HomeClient({
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         {spotlightMatch && <SpotlightCard match={spotlightMatch} />}
-        <NewsList news={news} />
+        <NewsList news={effectiveNews} />
       </div>
 
       <div id="match-center" className="space-y-6">
