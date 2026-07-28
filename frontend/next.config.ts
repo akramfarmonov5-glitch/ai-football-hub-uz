@@ -3,7 +3,10 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Docker uchun: faqat kerakli fayllardan iborat minimal server chiqadi
   // (.next/standalone). node_modules to'liq nusxalanmaydi.
-  output: "standalone",
+  //
+  // Vercel'da bu kerak emas — platforma o'zi optimallashtiradi. Shuning uchun
+  // Vercel muhitida (VERCEL=1 avtomatik qo'yiladi) o'chirib qo'yamiz.
+  output: process.env.VERCEL ? undefined : "standalone",
   images: {
     // Jamoa logotiplari tashqi manbalardan keladi
     remotePatterns: [

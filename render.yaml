@@ -1,0 +1,57 @@
+# Render deploy konfiguratsiyasi (Blueprint).
+#
+# Ishlatish: Render panelida "New +" -> "Blueprint" -> shu repozitoriyni tanlang.
+# Maxfiy qiymatlar (sync: false) Render panelida qo'lda kiritiladi — ular
+# hech qachon repoga tushmasligi kerak.
+
+services:
+  # ---------------------------------------------------------------------------
+  # Backend: FastAPI + fon vazifasi (ma'lumot sinxronizatsiyasi, AI)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: futbol-backend
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    region: frankfurt
+    healthCheckPath: /health
+    envVars:
+      # --- Baza: Neon ulanish satri (Render panelida kiritiladi) ---
+      - key: DATABASE_URL
+        sync: false
+
+      # --- Xavfsizlik ---
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: SECRET_KEY
+        generateValue: true
+
+      # --- Frontend manzili (Vercel domeni) ---
+      # CORS shu ro'yxatga qarab ishlaydi — domen aniq bo'lgach yangilanadi
+      - key: BACKEND_CORS_ORIGINS
+        sync: false
+      - key: PUBLIC_SITE_URL
+        sync: false
+
+      # --- Ma'lumot manbai: TheSportsDB (bepul) ---
+      - key: SPORTSDB_ENABLED
+        value: "true"
+      - key: SPORTSDB_API_KEY
+        value: "3"
+      - key: SPORTSDB_LEAGUES
+        value: "4794,4480,4328,4335,4332,4331,4334,4339"
+      - key: SPORTSDB_POLL_SECONDS
+        value: "600"
+      - key: SPORTSDB_REQUEST_INTERVAL_MS
+        value: "2200"
+
+      # --- AI (ixtiyoriy: bo'sh bo'lsa shablonli matnlar ishlatiladi) ---
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: "gemini-2.5-flash"
+
+      # --- Telegram bot (ixtiyoriy) ---
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
