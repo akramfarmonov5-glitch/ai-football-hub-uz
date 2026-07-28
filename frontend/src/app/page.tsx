@@ -20,8 +20,8 @@ export default async function Home() {
 
       {/* Qidiruv tizimlari uchun qisqacha tavsif */}
       <p className="sr-only">
-        AI Football Hub Uzbekistan — jonli futbol natijalari, o'yin
-        statistikasi va sun'iy intellekt tahlillari. Ayni paytda {liveCount} ta
+        Football Hub Uzbekistan — jonli futbol natijalari, o'yin
+        statistikasi va ekspert tahlillari. Ayni paytda {liveCount} ta
         o'yin jonli efirda, jami {matches.length} ta uchrashuv kuzatilmoqda.
       </p>
     </>

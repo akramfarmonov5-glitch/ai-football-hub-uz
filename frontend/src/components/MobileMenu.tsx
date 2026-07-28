@@ -40,7 +40,7 @@ export function MobileMenu() {
             {/* Close header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
               <span className="text-sm font-extrabold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-                AI FOOTBALL HUB
+                FOOTBALL HUB
               </span>
               <button
                 onClick={() => setIsOpen(false)}

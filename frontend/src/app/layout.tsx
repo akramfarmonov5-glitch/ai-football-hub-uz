@@ -18,7 +18,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 const TELEGRAM_BOT_URL =
   process.env.NEXT_PUBLIC_TELEGRAM_BOT_URL ?? "https://t.me/";
 
-const SITE_NAME = "AI Football Hub Uzbekistan";
+const SITE_NAME = "Football Hub Uzbekistan";
 const SITE_DESCRIPTION =
   "O'zbekistonning eng yaxshi futbol platformasi. Jonli hisoblar, o'yinoldi va o'yindan keyingi ekspert tahlillari.";
 
@@ -80,7 +80,7 @@ export default async function RootLayout({
             <div className="flex items-center space-x-8">
               <Link href="/" className="flex items-center space-x-2">
                 <span className="text-xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-400 bg-clip-text text-transparent">
-                  AI FOOTBALL HUB
+                  FOOTBALL HUB
                 </span>
                 <span className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-full font-bold">
                   UZB
@@ -127,7 +127,7 @@ export default async function RootLayout({
               <div className="space-y-4">
                 <div className="flex items-center space-x-2">
                   <span className="text-lg font-extrabold bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-                    AI FOOTBALL HUB
+                    FOOTBALL HUB
                   </span>
                   <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-full font-bold">
                     UZB
