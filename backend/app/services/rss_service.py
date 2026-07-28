@@ -113,7 +113,7 @@ class RSSFeedService:
                     if img_path.startswith("http"):
                         image_url = img_path
                     else:
-                        image_url = f"https://stadion.uz/storage/news/{img_path}"
+                        image_url = f"https://stadion.uz/images/news/{img_path}"
 
             # AI orqali Kirillchani Lotinchaga va chiroyli tahlilga o'tkazish
             latin_title = ""

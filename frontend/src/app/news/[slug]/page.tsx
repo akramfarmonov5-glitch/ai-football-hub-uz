@@ -9,6 +9,7 @@ import { getNewsArticle } from "../../../lib/server-api";
 import { formatDateTime } from "../../../lib/time";
 import { ShareButton } from "../../../components/ShareButton";
 import { NewsComments } from "../../../components/NewsComments";
+import { ArticleImage } from "../../../components/ArticleImage";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -92,16 +93,7 @@ export default async function NewsDetailPage({ params }: Props) {
       </div>
 
       {news.image_url && (
-        <div className="relative aspect-video rounded-3xl overflow-hidden border border-white/5">
-          <Image
-            src={news.image_url}
-            alt={news.title}
-            fill
-            sizes="(max-width: 768px) 100vw, 768px"
-            className="object-cover"
-            unoptimized
-          />
-        </div>
+        <ArticleImage src={news.image_url} title={news.title} />
       )}
 
       {news.summary && (
