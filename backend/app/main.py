@@ -21,6 +21,28 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def start_telegram_bot():
+    """TELEGRAM_BOT_TOKEN sozlangan bo'lsa aiogram botini fonda ishga tushiradi."""
+    if not settings.TELEGRAM_BOT_TOKEN:
+        return
+    try:
+        from aiogram import Bot, Dispatcher
+        from bot.handlers import commands, matches, settings as settings_handler
+
+        bot = Bot(token=settings.TELEGRAM_BOT_TOKEN)
+        dp = Dispatcher()
+        dp.include_router(commands.router)
+        dp.include_router(matches.router)
+        dp.include_router(settings_handler.router)
+
+        logger.info("Telegram Bot polling ishga tushirildi...")
+        await dp.start_polling(bot)
+    except asyncio.CancelledError:
+        raise
+    except Exception as exc:
+        logger.error("Telegram bot polling xatosi: %s", exc)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # --- Startup ---
@@ -38,14 +60,16 @@ async def lifespan(app: FastAPI):
         )
 
     simulator_task = asyncio.create_task(run_simulation_loop())
+    bot_task = asyncio.create_task(start_telegram_bot())
 
     yield
 
     # --- Shutdown ---
     simulator_task.cancel()
+    bot_task.cancel()
     try:
-        await simulator_task
-    except asyncio.CancelledError:
+        await asyncio.gather(simulator_task, bot_task, return_exceptions=True)
+    except Exception:
         pass
 
 
