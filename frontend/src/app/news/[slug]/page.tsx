@@ -8,6 +8,7 @@ import { ArrowLeft, Calendar, Tag, Globe } from "lucide-react";
 import { getNewsArticle } from "../../../lib/server-api";
 import { formatDateTime } from "../../../lib/time";
 import { ShareButton } from "../../../components/ShareButton";
+import { NewsComments } from "../../../components/NewsComments";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -127,6 +128,8 @@ export default async function NewsDetailPage({ params }: Props) {
           </a>
         </div>
       )}
+
+      <NewsComments newsSlug={news.slug} />
     </article>
   );
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { getMeta } from "../lib/server-api";
 import { SearchModal } from "../components/SearchModal";
+import { FavoriteTeamPicker } from "../components/FavoriteTeamPicker";
 
 /**
  * Shrift build paytida yuklab olinadi va o'z domenimizdan beriladi.
@@ -115,6 +116,7 @@ export default async function RootLayout({
 
             <div className="flex items-center space-x-3">
               <SearchModal />
+              <FavoriteTeamPicker />
               <a
                 href={TELEGRAM_BOT_URL}
                 target="_blank"
