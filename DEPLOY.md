@@ -44,9 +44,22 @@ Repozitoriyda `render.yaml` bor, shuning uchun Blueprint orqali:
 
 Barchasi `backend/.env` faylida bor — egasidan so'rang.
 
-> **Telegram kanali.** `TELEGRAM_CHANNEL_ID` qo'yilsa RSS'dan olingan har bir
-> yangilik kanalga **avtomatik chop etiladi**. Buni xohlamasangiz bo'sh
-> qoldiring — maqolalar faqat saytda chiqadi.
+> ### ⚠️ `TELEGRAM_CHANNEL_ID` ni birinchi deploy'da BO'SH qoldiring
+>
+> Sabab: Neon bazasi bo'sh bo'ladi, RSS sikli esa birinchi ishga tushishida
+> **10 tagacha maqolani birdan** yuklaydi. Kanal ID qo'yilgan bo'lsa,
+> ularning har biri kanalga post qilinadi — obunachilarga 10 ta xabar
+> ketma-ket tushadi.
+>
+> **To'g'ri tartib:**
+> 1. `TELEGRAM_CHANNEL_ID` ni **bo'sh** qoldirib deploy qiling
+> 2. ~15 daqiqa kuting (birinchi RSS sikli tugasin). Tekshirish:
+>    `curl https://futbol-backend.onrender.com/api/v1/news/ | head`
+> 3. Maqolalar paydo bo'lgach `TELEGRAM_CHANNEL_ID` ni to'ldiring va
+>    servisni restart qiling
+>
+> Shundan keyin kanalga faqat **yangi** maqolalar boradi: takroriylik
+> manba havolasi bo'yicha tekshiriladi, bazadagilar qayta post qilinmaydi.
 
 > **Vertex AI zaxirasi** service account JSON faylini talab qiladi. U repoda
 > yo'q (ataylab). Kerak bo'lsa Render'ning **Secret Files** bo'limiga
