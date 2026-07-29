@@ -25,6 +25,10 @@ gen-lang-client-*.json
 *.db-shm
 *.sqlite
 *.sqlite3
+# Baza zaxira nusxalari (`*.db` naqshi ularni tutmaydi)
+*.db.zaxira
+*.db.bak
+*.db.backup
 
 # ---------------------------------------------------------------------------
 # Python

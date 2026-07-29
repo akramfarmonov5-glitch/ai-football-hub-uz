@@ -6,6 +6,7 @@ o'tkazadi va bazaga hamda Telegram kanalga avtopost qiladi.
 """
 
 import asyncio
+import html
 import logging
 import re
 import xml.etree.ElementTree as ET
@@ -50,16 +51,20 @@ def cyrillic_to_latin(text: str) -> str:
     return "".join(result)
 
 
-import html
-
 def clean_html(text: str) -> str:
-    """HTML teglari va HTML obyektlarini (&laquo;, &raquo;, &quot;) tozalaydi."""
+    """HTML teglari va belgilarini (&laquo;, &raquo;, &quot;) tozalaydi.
+
+    Teglar olib tashlangach yana bir marta ochiladi: manba ba'zan ikki
+    marta kodlangan matn beradi (`&amp;laquo;`), bir marta ochish esa
+    `&laquo;` ni matn ichida qoldirib ketardi va sayt uni shundayligicha
+    ko'rsatardi.
+    """
     if not text:
         return ""
-    text = html.unescape(text)
-    clean = re.sub(r"<[^>]+>", " ", text)
-    clean = re.sub(r"\s+", " ", clean).strip()
-    return clean
+
+    clean = re.sub(r"<[^>]+>", " ", html.unescape(text))
+    clean = html.unescape(clean)
+    return re.sub(r"\s+", " ", clean).strip()
 
 
 class RSSFeedService:

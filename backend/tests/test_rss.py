@@ -72,6 +72,18 @@ def test_ortiqcha_boshliqlar_qisqaradi():
     assert clean_html("Bir\n\n  ikki   uch") == "Bir ikki uch"
 
 
+def test_ikki_marta_kodlangan_matn():
+    """Manba ba'zan `&amp;laquo;` beradi — bir marta ochish yetmaydi va
+    saytda `&laquo;` matn bo'lib ko'rinib qolardi."""
+    assert clean_html("&amp;laquo;Paxtakor&amp;raquo;") == "«Paxtakor»"
+
+
+def test_teg_ichidagi_belgilar():
+    assert clean_html("<p>&laquo;Nasaf&raquo; g&#39;alaba qozondi</p>") == (
+        "«Nasaf» g'alaba qozondi"
+    )
+
+
 def test_bosh_html():
     assert clean_html("") == ""
     assert clean_html(None) == ""
