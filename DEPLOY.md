@@ -39,6 +39,19 @@ Repozitoriyda `render.yaml` bor, shuning uchun Blueprint orqali:
 | `PUBLIC_SITE_URL` | `https://SIZNING-DOMEN.vercel.app` |
 | `GEMINI_API_KEY` | Gemini kaliti (ixtiyoriy) |
 | `TELEGRAM_BOT_TOKEN` | Bot tokeni (ixtiyoriy) |
+| `TELEGRAM_CHANNEL_ID` | Kanal ID (ixtiyoriy) |
+| `GCP_PROJECT_ID` | Vertex AI zaxirasi uchun (ixtiyoriy) |
+
+Barchasi `backend/.env` faylida bor — egasidan so'rang.
+
+> **Telegram kanali.** `TELEGRAM_CHANNEL_ID` qo'yilsa RSS'dan olingan har bir
+> yangilik kanalga **avtomatik chop etiladi**. Buni xohlamasangiz bo'sh
+> qoldiring — maqolalar faqat saytda chiqadi.
+
+> **Vertex AI zaxirasi** service account JSON faylini talab qiladi. U repoda
+> yo'q (ataylab). Kerak bo'lsa Render'ning **Secret Files** bo'limiga
+> yuklang va `VERTEX_CREDENTIALS_FILE` ga o'sha faylning yo'lini yozing.
+> Belgilanmasa faqat Gemini API ishlatiladi — bu ham yetarli.
 
 `ADMIN_TOKEN` va `SECRET_KEY` Render tomonidan avtomatik yaratiladi —
 `ADMIN_TOKEN` ni admin panelga kirish uchun panel'dan ko'chirib oling.

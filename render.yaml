@@ -52,6 +52,21 @@ services:
       - key: GEMINI_MODEL
         value: "gemini-2.5-flash"
 
-      # --- Telegram bot (ixtiyoriy) ---
+      # AI zaxira yo'li (Vertex AI). Ishlashi uchun service account JSON
+      # fayli kerak — uni Render'da "Secret Files" orqali qo'shing va
+      # VERTEX_CREDENTIALS_FILE ga o'sha faylning yo'lini yozing.
+      # Bo'sh qoldirilsa faqat Gemini API ishlatiladi.
+      - key: GCP_PROJECT_ID
+        sync: false
+      - key: VERTEX_LOCATION
+        value: "global"
+      - key: VERTEX_CREDENTIALS_FILE
+        sync: false
+
+      # --- Telegram (ixtiyoriy) ---
       - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      # Yangiliklar avtomatik chop etiladigan kanal. Busiz RSS maqolalari
+      # faqat saytda chiqadi, kanalga post qilinmaydi.
+      - key: TELEGRAM_CHANNEL_ID
         sync: false
