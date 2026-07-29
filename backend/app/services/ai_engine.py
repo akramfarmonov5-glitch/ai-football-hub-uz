@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass
 from functools import lru_cache
 from typing import Any, Dict, List, Optional
@@ -9,6 +10,33 @@ from typing import Any, Dict, List, Optional
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+# --- Markdown belgilarini tozalash -----------------------------------------
+# AI matnni Markdown bilan bezaydi (`**qalin**`, `### sarlavha`). Lekin ikkala
+# iste'molchi ham uni Markdown deb o'qimaydi:
+#   * sayt matnni oddiy tekst sifatida chiqaradi -> "**Dinamo**" ko'rinadi
+#   * Telegram o'z formatlashiga ega, `**` esa unda qalin qilmaydi va
+#     ekranlashdan keyin `\*\*` bo'lib matnda qolib ketadi
+# Shuning uchun belgilar generatsiya paytida olib tashlanadi.
+_MD_BOLD = re.compile(r"\*\*(.+?)\*\*", re.DOTALL)
+_MD_UNDERLINE = re.compile(r"__(.+?)__", re.DOTALL)
+_MD_HEADING = re.compile(r"^[ \t]{0,3}#{1,6}[ \t]*", re.MULTILINE)
+_MD_BULLET = re.compile(r"^[ \t]{0,3}[*+-][ \t]+", re.MULTILINE)
+_MD_CODE = re.compile(r"`+")
+
+
+def strip_markdown(text: str) -> str:
+    """Markdown bezaklarini olib tashlaydi, matnning o'zini qoldiradi."""
+    if not text:
+        return ""
+
+    text = _MD_BOLD.sub(r"\1", text)
+    text = _MD_UNDERLINE.sub(r"\1", text)
+    text = _MD_HEADING.sub("", text)
+    # Ro'yxat belgilari o'qishga qulay nuqtaga almashtiriladi
+    text = _MD_BULLET.sub("• ", text)
+    text = _MD_CODE.sub("", text)
+    return text.strip()
 
 
 @dataclass(frozen=True)
@@ -111,6 +139,14 @@ class AIEngineService:
     # ------------------------------------------------------------------
     # Ichki yordamchi
     # ------------------------------------------------------------------
+    async def _generate_text(self, prompt: str) -> str:
+        """Ko'rsatish uchun matn: Markdown bezaklari tozalangan holda.
+
+        `_generate` xom javobni qaytaradi — u JSON tahlil qilinadigan joyda
+        kerak (kod belgilarini olib tashlash JSON'ni buzardi).
+        """
+        return strip_markdown(await self._generate(prompt))
+
     async def _generate(self, prompt: str) -> str:
         """Manbalarni navbat bilan sinaydi. Hech biri ishlamasa bo'sh satr."""
         for provider in self.providers:
@@ -153,15 +189,17 @@ class AIEngineService:
         3. Taxminiy o'yin uslubi.
         Maksimal 3-4 ta xatboshi bo'lsin.
         """
-        generated = await self._generate(prompt)
+        generated = await self._generate_text(prompt)
         if generated:
             return generated
 
-        # Qoidaga asoslangan zaxira matn (o'zbekcha shablon)
+        # Qoidaga asoslangan zaxira matn (o'zbekcha shablon).
+        # Markdown ishlatilmaydi: matn sayt va Telegram'da oddiy tekst
+        # sifatida chiqadi, `**` esa shundayligicha ko'rinib qolardi.
         return (
-            f"**{league_name}** doirasida kutilayotgan murosasiz to'qnashuv! **{home_team}** o'z maydonida **{away_team}** jamoasini qabul qiladi.\n\n"
+            f"{league_name} doirasida kutilayotgan murosasiz to'qnashuv! {home_team} o'z maydonida {away_team} jamoasini qabul qiladi.\n\n"
             f"Mezbon jamoa so'nggi turlarda barqaror o'yin ko'rsatmoqda va turnir jadvalida yuqori o'rinlar uchun kurashmoqda. "
-            f"Biroq, mehmon bo'lib kelayotgan **{away_team}** tarkib jihatidan ancha kuchli va har qanday raqibga jiddiy muammo tug'dira oladi.\n\n"
+            f"Biroq, mehmon bo'lib kelayotgan {away_team} tarkib jihatidan ancha kuchli va har qanday raqibga jiddiy muammo tug'dira oladi.\n\n"
             f"Ekspertlarimiz fikriga ko'ra, o'yin asosan maydon markazidagi kurashlar va tezkor qarshi hujumlar ustiga quriladi. "
             f"O'z maydoni omili {home_team}ga qo'shimcha ishonch berishi aniq."
         )
@@ -187,12 +225,12 @@ class AIEngineService:
 
         Tahlilda o'yinning burilish nuqtalari, statistik ko'rsatkichlarning tahlili va g'alaba sabablarini yoritib bering.
         """
-        generated = await self._generate(prompt)
+        generated = await self._generate_text(prompt)
         if generated:
             return generated
 
         return (
-            f"**{home_team} - {away_team} ({score}) o'yini yakunlandi.**\n\n"
+            f"{home_team} - {away_team} ({score}) o'yini yakunlandi.\n\n"
             f"Uchrashuv kutilganidek shiddatli kechdi. Statistika tahliliga ko'ra, "
             f"to'p nazorati asosan maydondagi ustunlikni belgilab berdi. {home_team} jamoasi yaratilgan vaziyatlardan "
             f"yaxshiroq foydalangan holda g'alabani qo'lga kiritdi.\n\n"
@@ -224,7 +262,7 @@ class AIEngineService:
         Matn:
         {text}
         """
-        return await self._generate(prompt)
+        return await self._generate_text(prompt)
 
     async def generate_news_article(self, topic: str) -> Dict[str, Any]:
         prompt = f"""
@@ -235,10 +273,11 @@ class AIEngineService:
         {{
             "title": "SEO sarlavha",
             "summary": "Qisqa annotatsiya (1-2 gap)",
-            "content": "To'liq maqola mazmuni (markdown formatida)",
+            "content": "To'liq maqola mazmuni (oddiy matn, Markdown belgilarisiz)",
             "tags": ["tag1", "tag2"]
         }}
         Faqat JSON qaytaring, boshqa hech qanday tekst bo'lmasin.
+        Matn ichida **, ##, ` kabi Markdown belgilarini ishlatmang.
         """
         generated = await self._generate(prompt)
         if generated:
@@ -248,6 +287,9 @@ class AIEngineService:
                 # Model kutilmagan shakl qaytarsa zaxira matnga tushamiz
                 if all(key in article for key in ("title", "summary", "content")):
                     article.setdefault("tags", ["futbol"])
+                    # Model ko'rsatmaga qaramay Markdown qo'shishi mumkin
+                    for maydon in ("title", "summary", "content"):
+                        article[maydon] = strip_markdown(str(article[maydon]))
                     return article
                 logger.warning("Gemini JSON'ida majburiy maydonlar yetishmayapti")
             except json.JSONDecodeError as exc:
@@ -259,8 +301,8 @@ class AIEngineService:
             "title": f"Dahshatli Transfer: {topic} bo'yicha yangi tafsilotlar",
             "summary": "Yevropa futbolida yangi mish-mishlar va rasmiy muzokaralar qizg'in pallaga kirdi. Batafsil bizning maqolamizda.",
             "content": (
-                f"### Transfer Bozoridagi So'nggi Yangiliklar\n\n"
-                f"Futbol olamida katta shov-shuvlarga sabab bo'layotgan **{topic}** masalasi kun tartibidagi eng muhim mavzu bo'lib turibdi.\n\n"
+                f"Transfer bozoridagi so'nggi yangiliklar\n\n"
+                f"Futbol olamida katta shov-shuvlarga sabab bo'layotgan {topic} masalasi kun tartibidagi eng muhim mavzu bo'lib turibdi.\n\n"
                 f"Nufuzli insayderlarning xabar berishicha, jamoalar kelishuv shartlarini kelishib olishgan va yaqin kunlarda tibbiy ko'riklar rejalashtirilgan. "
                 f"Muxlislar ushbu kelishuvning yakunlanishini sabrsizlik bilan kutishmoqda.\n\n"
                 f"Batafsil yangiliklarni AI Football Hub Uzbekistan platformasida kuzatib boring!"
