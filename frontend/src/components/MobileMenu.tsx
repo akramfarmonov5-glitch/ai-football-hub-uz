@@ -8,7 +8,7 @@ const TELEGRAM_BOT_URL = process.env.NEXT_PUBLIC_TELEGRAM_BOT_URL ?? "https://t.
 
 const NAV_ITEMS = [
   { href: "/#match-center", label: "O'yin Markazi", icon: Trophy },
-  { href: "/standings", label: "Turnir jadvali", icon: Table2 },
+  { href: "/standings", label: "Yetakchi beshlik", icon: Table2 },
   { href: "/#news-section", label: "Yangiliklar", icon: Newspaper },
 ];
 

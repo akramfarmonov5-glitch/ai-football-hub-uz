@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getLocalMatches, getLocalNews, simulateLocalTick } from "./mockStore";
 import type { Match, NewsItem } from "./types";
 import { apiUrl, WS_URL } from "./api";
 
@@ -20,8 +19,10 @@ interface Options {
  *
  * Boshlang'ich ma'lumot serverdan props orqali keladi, shuning uchun sahifa
  * darhol to'liq ko'rinadi. Keyin WebSocket orqali hisoblar yangilanib turadi.
- * Ulanish uzilsa avtomatik tiklanadi; backend umuman yo'q bo'lsa brauzerdagi
- * demo ma'lumotlarga o'tiladi.
+ * Ulanish uzilsa avtomatik tiklanadi.
+ *
+ * Backend javob bermasa **soxta ma'lumot yuklanmaydi** — mavjud ro'yxat o'z
+ * holicha qoladi va `isOffline` orqali foydalanuvchi ogohlantiriladi.
  */
 export function useMatches({ initialMatches = [], initialNews = [] }: Options = {}) {
   const [matches, setMatches] = useState<Match[]>(initialMatches);
@@ -33,8 +34,6 @@ export function useMatches({ initialMatches = [], initialNews = [] }: Options = 
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const attemptsRef = useRef(0);
   const closedByUsRef = useRef(false);
-  // Backend hech qachon javob bermadimi? Faqat shu holatda lokal demo ishlaydi.
-  const usingLocalDataRef = useRef(false);
 
   useEffect(() => {
     closedByUsRef.current = false;
@@ -49,15 +48,15 @@ export function useMatches({ initialMatches = [], initialNews = [] }: Options = 
         if (!matchesRes.ok) throw new Error("API error");
 
         setMatches(await matchesRes.json());
-        usingLocalDataRef.current = false;
         setIsOffline(false);
         if (newsRes.ok) setNews(await newsRes.json());
       } catch {
-        console.warn("Backend ishlamayapti — lokal demo ma'lumotlar yuklanmoqda.");
-        usingLocalDataRef.current = true;
+        // Soxta ma'lumot yuklanmaydi: mavjud (serverdan kelgan) ro'yxat
+        // o'z holicha qoladi va foydalanuvchi ogohlantirish ko'radi.
+        // Ilgari bu yerda kodga yozilgan namunaviy o'yinlar qo'yilardi —
+        // ular haqiqiy natija kabi ko'rinardi.
+        console.warn("Backendga ulanib bo'lmadi — ma'lumot yangilanmadi.");
         setIsOffline(true);
-        setMatches(getLocalMatches());
-        setNews(getLocalNews());
       } finally {
         setLoading(false);
       }
@@ -110,20 +109,10 @@ export function useMatches({ initialMatches = [], initialNews = [] }: Options = 
     }
     connect();
 
-    // Zaxira ticker — faqat backend umuman yo'q bo'lganda ishlaydi.
-    // Aks holda WebSocket qisqa uzilganda haqiqiy hisob demo ma'lumot bilan
-    // almashtirilib yuborilardi.
-    const localTicker = setInterval(() => {
-      if (usingLocalDataRef.current) {
-        setMatches(simulateLocalTick());
-      }
-    }, 4000);
-
     return () => {
       closedByUsRef.current = true;
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
       socketRef.current?.close();
-      clearInterval(localTicker);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

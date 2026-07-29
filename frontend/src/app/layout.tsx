@@ -91,7 +91,7 @@ export default async function RootLayout({
                   O'yin Markazi
                 </Link>
                 <Link href="/standings" className="hover:text-emerald-400 transition-colors">
-                  Turnir jadvali
+                  Yetakchi beshlik
                 </Link>
                 <Link href="/#news-section" className="hover:text-emerald-400 transition-colors">
                   Yangiliklar
@@ -152,7 +152,7 @@ export default async function RootLayout({
                     <Tv className="w-3 h-3" /><span>O'yin Markazi</span>
                   </Link>
                   <Link href="/standings" className="text-xs text-slate-500 hover:text-emerald-400 transition-colors flex items-center space-x-2">
-                    <Table2 className="w-3 h-3" /><span>Turnir jadvali</span>
+                    <Table2 className="w-3 h-3" /><span>Yetakchi beshlik</span>
                   </Link>
                   <Link href="/#news-section" className="text-xs text-slate-500 hover:text-emerald-400 transition-colors flex items-center space-x-2">
                     <Newspaper className="w-3 h-3" /><span>Yangiliklar</span>

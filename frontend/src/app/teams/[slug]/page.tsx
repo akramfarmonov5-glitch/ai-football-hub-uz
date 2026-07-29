@@ -158,7 +158,7 @@ function StandingCard({ team }: { team: TeamDetail }) {
     <div className="glass-panel p-5 rounded-2xl space-y-4">
       <h2 className="font-bold text-sm flex items-center gap-2">
         <Trophy className="w-4 h-4 text-emerald-400" />
-        Turnir jadvalida
+        Yetakchi beshlikda
       </h2>
 
       <div className="flex items-baseline gap-2">
@@ -182,7 +182,7 @@ function StandingCard({ team }: { team: TeamDetail }) {
         href="/standings"
         className="block text-center text-xs text-cyan-400 hover:underline pt-1"
       >
-        To'liq jadvalni ko'rish
+        Barcha ligalar bo'yicha ko'rish
       </Link>
     </div>
   );

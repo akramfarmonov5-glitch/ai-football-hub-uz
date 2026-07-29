@@ -5,14 +5,17 @@ import { Trophy } from "lucide-react";
 import { getMeta, getStandings } from "../../lib/server-api";
 import { StandingsTable } from "../../components/StandingsTable";
 
+// Manba (TheSportsDB bepul tarifi) jadvalning faqat birinchi 5 qatorini
+// beradi. Shuning uchun sahifa "to'liq turnir jadvali" deb atalmaydi —
+// aks holda tashrif buyuruvchi ligada 5 ta jamoa bor deb o'ylardi.
 export const metadata: Metadata = {
-  title: "Turnir jadvali",
+  title: "Yetakchi beshlik",
   description:
-    "La Liga, Angliya Premyer-ligasi va O'zbekiston Superligasi turnir jadvallari: ochkolar, gollar farqi va jamoalar formasi.",
+    "O'zbekiston Superligasi va Yevropa ligalarida yetakchi beshlik: ochkolar, gollar farqi va jamoalar formasi.",
   openGraph: {
-    title: "Turnir jadvali",
+    title: "Yetakchi beshlik",
     description:
-      "Ligalar bo'yicha turnir jadvallari: ochkolar, gollar farqi va oxirgi 5 o'yin formasi.",
+      "Ligalar bo'yicha yetakchi beshlik: ochkolar, gollar farqi va oxirgi 5 o'yin formasi.",
     url: "/standings",
   },
   alternates: { canonical: "/standings" },
@@ -68,8 +71,10 @@ export default async function StandingsPage() {
           </>
         ) : (
           <>
-            Jadval rasmiy manbadan olinadi va muntazam yangilanib turadi.
-            Mavsumi hali boshlanmagan ligalar ko'rsatilmaydi.
+            Ma'lumot rasmiy manbadan olinadi va muntazam yangilanib turadi.
+            Manba tarifi jadvalning faqat <strong>birinchi 5 o'rnini</strong>{" "}
+            beradi, shuning uchun to'liq turnir jadvali emas, yetakchi beshlik
+            ko'rsatiladi. Mavsumi hali boshlanmagan ligalar chiqarilmaydi.
           </>
         )}{" "}
         <Link href="/" className="text-cyan-400 hover:underline">
@@ -85,10 +90,10 @@ function PageHeader() {
     <div className="space-y-1">
       <h1 className="text-2xl font-extrabold tracking-tight flex items-center gap-2">
         <Trophy className="w-6 h-6 text-emerald-400" />
-        Turnir jadvali
+        Yetakchi beshlik
       </h1>
       <p className="text-sm text-slate-400">
-        Ligalar bo'yicha ochkolar, gollar farqi va jamoalar formasi.
+        Ligalar bo'yicha eng yuqori 5 o'rin: ochkolar, gollar farqi va forma.
       </p>
     </div>
   );

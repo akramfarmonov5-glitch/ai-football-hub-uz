@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { Tv, Sparkles, ArrowUpRight, Zap, TrendingUp, Users } from "lucide-react";
+import { Tv, Sparkles, AlertTriangle, Zap, TrendingUp, Users } from "lucide-react";
 import { useMatches } from "../lib/useMatches";
-import { getLocalMatches, getLocalNews } from "../lib/mockStore";
 import { LiveTicker } from "./LiveTicker";
 import { SpotlightCard } from "./SpotlightCard";
 import { NewsList } from "./NewsList";
@@ -24,20 +22,21 @@ export function HomeClient({
   const { matches, news, isOffline } = useMatches({ initialMatches, initialNews });
   const [selectedLeague, setSelectedLeague] = useState<string>("All");
 
-  const effectiveMatches = matches.length > 0 ? matches : getLocalMatches();
-  const effectiveNews = news.length > 0 ? news : getLocalNews();
-
-  const leagues = ["All", ...Array.from(new Set(effectiveMatches.map((m) => m.league_name)))];
+  // Ma'lumot bo'lmasa bo'sh holat ko'rsatiladi. Ilgari bu yerda kodga
+  // yozilgan namunaviy o'yinlar ishlatilardi ("Real Madrid 3-2 Barcelona") —
+  // natijada server javob bermagan yoki o'yin bo'lmagan kunlarda sayt
+  // to'qib chiqarilgan natijalarni haqiqiy kabi ko'rsatardi.
+  const leagues = ["All", ...Array.from(new Set(matches.map((m) => m.league_name)))];
   const filteredMatches =
     selectedLeague === "All"
-      ? effectiveMatches
-      : effectiveMatches.filter((m) => m.league_name === selectedLeague);
+      ? matches
+      : matches.filter((m) => m.league_name === selectedLeague);
 
   const liveMatches = filteredMatches.filter((m) => m.status === "LIVE");
   const upcomingMatches = filteredMatches.filter((m) => m.status === "NS");
   const finishedMatches = filteredMatches.filter((m) => m.status === "FT");
 
-  const spotlightMatch = liveMatches[0] || upcomingMatches[0] || finishedMatches[0] || effectiveMatches[0];
+  const spotlightMatch = liveMatches[0] || upcomingMatches[0] || finishedMatches[0];
 
   return (
     <>
@@ -98,12 +97,12 @@ export function HomeClient({
           <div className="flex flex-row md:flex-col gap-4">
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center space-y-1 min-w-[100px]">
               <TrendingUp className="w-5 h-5 text-emerald-400 mx-auto" />
-              <div className="text-2xl font-black text-white">{effectiveMatches.length}</div>
+              <div className="text-2xl font-black text-white">{matches.length}</div>
               <div className="text-[10px] text-slate-400 font-bold uppercase">O'yinlar</div>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center space-y-1 min-w-[100px]">
               <Sparkles className="w-5 h-5 text-cyan-400 mx-auto" />
-              <div className="text-2xl font-black text-white">{effectiveNews.length}</div>
+              <div className="text-2xl font-black text-white">{news.length}</div>
               <div className="text-[10px] text-slate-400 font-bold uppercase">Yangilik</div>
             </div>
             <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center space-y-1 min-w-[100px]">
@@ -117,21 +116,17 @@ export function HomeClient({
 
       {/* Server ulanmasa ogohlantirish */}
       {isOffline && (
-        <div className="flex items-center justify-between px-6 py-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/25 text-cyan-400 text-xs font-semibold shadow-lg animate-fadeInUp">
-          <span className="flex items-center">
-            <Sparkles className="w-4 h-4 mr-2 text-cyan-300 animate-pulse" />
-            Serverga ulanib bo'lmadi — brauzerdagi zaxira ma'lumotlar ko'rsatilmoqda.
-          </span>
-          <Link href="/admin" className="underline hover:text-cyan-300 flex items-center">
-            Simulyatorga o'tish <ArrowUpRight className="w-3.5 h-3.5 ml-1" />
-          </Link>
+        <div className="flex items-center px-6 py-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs font-semibold shadow-lg animate-fadeInUp">
+          <AlertTriangle className="w-4 h-4 mr-2 shrink-0" />
+          Serverga ulanib bo'lmadi — ma'lumotlar yangilanmayapti. Ko'rsatilayotgan
+          natijalar eskirgan bo'lishi mumkin.
         </div>
       )}
 
       {/* Spotlight + News */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 animate-fadeInUp" style={{ animationDelay: "0.15s" }}>
         {spotlightMatch && <SpotlightCard match={spotlightMatch} />}
-        <NewsList news={effectiveNews} />
+        <NewsList news={news} />
       </div>
 
       {/* Match Center */}

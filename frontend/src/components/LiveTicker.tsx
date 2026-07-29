@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { useMatches } from "../lib/useMatches";
-import { getLocalMatches } from "../lib/mockStore";
 import type { Match } from "../lib/types";
 import { minuteLabel } from "../lib/matchStatus";
 
 export function LiveTicker({ initialMatches }: { initialMatches: Match[] }) {
   const { matches } = useMatches({ initialMatches, initialNews: [] });
 
-  const effectiveMatches = matches.length > 0 ? matches : getLocalMatches();
-  const liveAndRecent = effectiveMatches.filter(
+  // Ma'lumot bo'lmasa lenta umuman ko'rsatilmaydi. Ilgari bu yerda kodga
+  // yozilgan namunaviy natijalar chiqarilardi va ular sahifaning eng
+  // tepasida haqiqiy hisob kabi ko'rinardi.
+  const liveAndRecent = matches.filter(
     (m) => m.status === "LIVE" || m.status === "FT"
   );
 

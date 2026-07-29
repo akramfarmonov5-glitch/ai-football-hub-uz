@@ -17,6 +17,11 @@ export function NewsList({ news }: { news: NewsItem[] }) {
       </div>
 
       <div className="flex-1 space-y-4 max-h-[460px] overflow-y-auto pr-1 stagger-children">
+        {news.length === 0 && (
+          <p className="text-xs text-slate-500 text-center py-8">
+            Hozircha yangilik yo'q.
+          </p>
+        )}
         {news.map((item) => {
           const cleanTag = (t: string) => t.replace(/^#+/, "");
           return (
